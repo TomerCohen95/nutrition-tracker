@@ -12,6 +12,7 @@ import WidgetKit
 struct WeeklyPlannerView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allFoodItems: [FoodItem]
+    @Query(sort: \CalorieGoal.effectiveDate, order: .reverse) var calorieGoals: [CalorieGoal]
     
     @State private var selectedDate = Date()
     @State private var showingAddFood = false
@@ -44,8 +45,12 @@ struct WeeklyPlannerView: View {
             .reduce(0) { $0 + $1.calories }
     }
     
+    private var dailyGoal: Int {
+        CalorieGoal.currentGoal(for: selectedDate, from: calorieGoals)
+    }
+    
     private var remainingCalories: Int {
-        2000 - caloriesEaten // Daily goal
+        dailyGoal - caloriesEaten
     }
     
     var body: some View {
@@ -82,7 +87,7 @@ struct WeeklyPlannerView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
                                 
-                                Text("/ 2000 kcal")
+                                Text("/ \(dailyGoal) kcal")
                                     .font(.title3)
                                     .foregroundColor(.secondary)
                             }
@@ -112,7 +117,7 @@ struct WeeklyPlannerView: View {
                     }
                     
                     // Progress Bar
-                    ProgressView(value: min(Double(caloriesEaten), 2000.0), total: 2000.0)
+                    ProgressView(value: min(Double(caloriesEaten), Double(dailyGoal)), total: Double(dailyGoal))
                         .tint(remainingCalories >= 0 ? .green : .red)
                     
                     // Action Buttons

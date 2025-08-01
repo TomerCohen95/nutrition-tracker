@@ -14,6 +14,7 @@ struct AddFoodView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \FoodHistory.lastUsed, order: .reverse) private var foodHistory: [FoodHistory]
+    @State private var historyRefreshTrigger = false
     
     let targetDate: Date
     
@@ -28,57 +29,131 @@ struct AddFoodView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                // Recent Foods Section (Quick-Pick)
-                if !foodHistory.isEmpty {
-                    Section(header: Text("Recent Foods")) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(Array(foodHistory.prefix(10)), id: \.name) { historyItem in
-                                    Button(action: {
-                                        selectFromHistory(historyItem)
-                                    }) {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(historyItem.name)
-                                                .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.primary)
-                                                .lineLimit(2)
-                                            
-                                            Text("\(historyItem.calories) kcal")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                        .frame(width: 100)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
+            ScrollView {
+                VStack(spacing: AppTheme.paddingL) {
+                    // Recent Foods Section (Quick-Pick)
+                    VStack(alignment: .leading, spacing: AppTheme.paddingM) {
+                        HStack {
+                            Text("Recent Foods")
+                                .font(AppTheme.headlineFont)
+                                .foregroundColor(AppTheme.textPrimary)
+                            
+                            Spacer()
+                            
+                            if !foodHistory.isEmpty {
+                                Text("Tap to use")
+                                    .font(AppTheme.smallFont)
+                                    .foregroundColor(AppTheme.textSecondary)
                             }
-                            .padding(.horizontal, 16)
+                        }
+                        
+                        if !foodHistory.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: AppTheme.paddingM) {
+                                    ForEach(Array(foodHistory.prefix(10)), id: \.name) { historyItem in
+                                        Button(action: {
+                                            selectFromHistory(historyItem)
+                                        }) {
+                                            VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                                                Text(historyItem.name)
+                                                    .font(AppTheme.captionFont)
+                                                    .foregroundColor(AppTheme.textPrimary)
+                                                    .lineLimit(2)
+                                                    .multilineTextAlignment(.leading)
+                                                
+                                                Text("\(historyItem.calories) kcal")
+                                                    .font(AppTheme.smallFont)
+                                                    .foregroundColor(AppTheme.primaryGreen)
+                                                    .fontWeight(.medium)
+                                            }
+                                            .frame(width: 90, alignment: .leading)
+                                            .padding(AppTheme.paddingS)
+                                            .background(AppTheme.lightGreen)
+                                            .cornerRadius(AppTheme.radiusS)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                                .padding(.horizontal, AppTheme.paddingM)
+                            }
+                        } else {
+                            // Empty state message
+                            HStack {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .foregroundColor(AppTheme.textSecondary)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("No recent foods yet")
+                                        .font(AppTheme.bodyFont)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    
+                                    Text("Add some foods below and they'll appear here for quick selection")
+                                        .font(AppTheme.smallFont)
+                                        .foregroundColor(AppTheme.textSecondary.opacity(0.8))
+                                        .lineLimit(2)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(AppTheme.paddingM)
+                            .background(AppTheme.secondaryBackground)
+                            .cornerRadius(AppTheme.radiusS)
                         }
                     }
-                }
-                
-                Section(header: Text("Food Details")) {
-                    TextField("Food name", text: $foodName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding(.horizontal, AppTheme.paddingM)
                     
-                    TextField("Calories", text: $calories)
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-                
-                Section {
-                    Button("Add Food Item") {
-                        addFoodItem()
+                    
+                    // Food Details Card
+                    VStack(spacing: AppTheme.paddingL) {
+                        VStack(alignment: .leading, spacing: AppTheme.paddingM) {
+                            Text("Food Details")
+                                .font(AppTheme.headlineFont)
+                                .foregroundColor(AppTheme.textPrimary)
+                            
+                            VStack(spacing: AppTheme.paddingM) {
+                                VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                                    Text("Food Name")
+                                        .font(AppTheme.captionFont)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    
+                                    TextField("Enter food name", text: $foodName)
+                                        .font(AppTheme.bodyFont)
+                                        .padding(AppTheme.paddingM)
+                                        .background(AppTheme.secondaryBackground)
+                                        .cornerRadius(AppTheme.radiusS)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                                    Text("Calories")
+                                        .font(AppTheme.captionFont)
+                                        .foregroundColor(AppTheme.textSecondary)
+                                    
+                                    TextField("Enter calories", text: $calories)
+                                        .font(AppTheme.bodyFont)
+                                        .keyboardType(.numberPad)
+                                        .padding(AppTheme.paddingM)
+                                        .background(AppTheme.secondaryBackground)
+                                        .cornerRadius(AppTheme.radiusS)
+                                }
+                            }
+                        }
+                        .padding(AppTheme.paddingL)
+                        .cardStyle()
+                        
+                        // Add Button
+                        Button("Add Food Item") {
+                            addFoodItem()
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(foodName.isEmpty || calories.isEmpty)
+                        .opacity(foodName.isEmpty || calories.isEmpty ? 0.6 : 1.0)
                     }
-                    .frame(maxWidth: .infinity)
-                    .disabled(foodName.isEmpty || calories.isEmpty)
+                    .padding(.horizontal, AppTheme.paddingM)
                 }
+                .padding(.vertical, AppTheme.paddingL)
             }
+            .background(AppTheme.secondaryBackground)
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -86,6 +161,7 @@ struct AddFoodView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(AppTheme.textSecondary)
                 }
             }
             .alert("Error", isPresented: $showingAlert) {
@@ -176,6 +252,8 @@ struct AddFoodView: View {
         
         do {
             try modelContext.save()
+            // Trigger view refresh
+            historyRefreshTrigger.toggle()
         } catch {
             print("Error saving to history: \(error)")
         }

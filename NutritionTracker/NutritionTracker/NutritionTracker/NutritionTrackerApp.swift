@@ -11,17 +11,26 @@ import SwiftData
 @main
 struct NutritionTrackerApp: App {
     // App Group identifier for sharing data with widget
-    static let appGroupID = "group.com.yourname.nutritiontracker"
+    static let appGroupID = "group.tomercode.nutritiontracker"
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             FoodItem.self,
             FoodHistory.self,
+            CalorieGoal.self,
         ])
         
+        // Get the shared container URL for app group
+        guard let storeURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
+            fatalError("Shared container could not be created.")
+        }
+        
         let modelConfiguration = ModelConfiguration(
+            "NutritionTracker",
             schema: schema,
-            isStoredInMemoryOnly: false
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            groupContainer: .identifier("group.tomercode.nutritiontracker")
         )
 
         do {

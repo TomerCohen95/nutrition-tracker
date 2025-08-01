@@ -21,7 +21,7 @@ struct ContentView: View {
                     .navigationBarTitleDisplayMode(.large)
             }
             .tabItem {
-                Image(systemName: "calendar.badge.clock")
+                Image(systemName: "fork.knife.circle.fill")
                 Text("Today")
             }
             .tag(0)
@@ -33,11 +33,13 @@ struct ContentView: View {
                     .navigationBarTitleDisplayMode(.large)
             }
             .tabItem {
-                Image(systemName: "calendar")
+                Image(systemName: "calendar.badge.plus")
                 Text("Plan")
             }
             .tag(1)
+            
         }
+        .accentColor(AppTheme.primaryGreen)
     }
 }
 
