@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct AddFoodView: View {
     @Environment(\.modelContext) private var modelContext
@@ -78,6 +79,10 @@ struct AddFoodView: View {
         
         do {
             try modelContext.save()
+            
+            // Force widget refresh immediately after saving
+            WidgetCenter.shared.reloadAllTimelines()
+            
             dismiss()
         } catch {
             alertMessage = "Failed to save food item: \(error.localizedDescription)"

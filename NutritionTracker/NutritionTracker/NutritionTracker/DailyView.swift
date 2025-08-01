@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct DailyView: View {
     @Environment(\.modelContext) private var modelContext
@@ -128,6 +129,9 @@ struct DailyView: View {
         
         do {
             try modelContext.save()
+            
+            // Refresh widget when status changes
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("Error updating item status: \(error)")
         }
@@ -140,6 +144,9 @@ struct DailyView: View {
         
         do {
             try modelContext.save()
+            
+            // Refresh widget when items are deleted
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("Error deleting items: \(error)")
         }
