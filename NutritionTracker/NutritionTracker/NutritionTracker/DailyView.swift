@@ -12,6 +12,7 @@ import WidgetKit
 struct DailyView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allFoodItems: [FoodItem]
+    @State private var showingAddFood = false
     
     // Daily calorie goal (can be made configurable later)
     private let dailyGoal = 2000
@@ -121,6 +122,18 @@ struct DailyView: View {
                 }
                 .listStyle(PlainListStyle())
             }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingAddFood = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddFood) {
+            AddFoodView()
         }
     }
     

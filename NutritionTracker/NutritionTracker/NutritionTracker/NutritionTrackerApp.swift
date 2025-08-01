@@ -16,6 +16,7 @@ struct NutritionTrackerApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             FoodItem.self,
+            FoodHistory.self,
         ])
         
         let modelConfiguration = ModelConfiguration(

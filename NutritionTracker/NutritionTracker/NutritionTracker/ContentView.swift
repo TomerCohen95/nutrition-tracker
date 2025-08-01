@@ -10,30 +10,38 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var showingAddFood = false
+    @State private var selectedTab = 0
     
     var body: some View {
-        NavigationView {
-            DailyView()
-                .navigationTitle("Nutrition Tracker")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showingAddFood = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                    }
-                }
-                .sheet(isPresented: $showingAddFood) {
-                    AddFoodView()
-                }
+        TabView(selection: $selectedTab) {
+            // Today's View (Original Daily View)
+            NavigationView {
+                DailyView()
+                    .navigationTitle("Today")
+                    .navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem {
+                Image(systemName: "calendar.badge.clock")
+                Text("Today")
+            }
+            .tag(0)
+            
+            // Weekly Planner
+            NavigationView {
+                WeeklyPlannerView()
+                    .navigationTitle("Weekly Planner")
+                    .navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem {
+                Image(systemName: "calendar")
+                Text("Plan")
+            }
+            .tag(1)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: FoodItem.self, inMemory: true)
+        .modelContainer(for: [FoodItem.self, FoodHistory.self], inMemory: true)
 }
