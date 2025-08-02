@@ -274,7 +274,8 @@ struct MediumWidgetView: View {
                             
                             Text(item.1)
                                 .font(.caption)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
                             
                             Spacer()
                             
@@ -399,7 +400,8 @@ struct LargeWidgetView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.1)
                                     .font(.body)
-                                    .lineLimit(1)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.8)
                                 
                                 Text("\(item.3) kcal")
                                     .font(.caption)
@@ -524,7 +526,8 @@ struct ExtraLargeWidgetView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.1)
                                         .font(.body)
-                                        .lineLimit(1)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.8)
                                     Text("\(item.3) kcal")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -566,7 +569,8 @@ struct ExtraLargeWidgetView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.1)
                                         .font(.body)
-                                        .lineLimit(1)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.8)
                                     Text("\(item.3) kcal")
                                         .font(.caption)
                                         .foregroundColor(.secondary)

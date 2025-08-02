@@ -5,10 +5,10 @@
 //  Interactive widget intents for marking foods as eaten
 //
 
-import Foundation
-import WidgetKit
 import AppIntents
+import Foundation
 import SwiftData
+import WidgetKit
 
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "Configuration" }
@@ -18,16 +18,16 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
 struct ToggleFoodStatusIntent: AppIntent {
     static var title: LocalizedStringResource { "Toggle Food Status" }
     static var description: IntentDescription { "Mark a food item as eaten or planned." }
-    
+
     @Parameter(title: "Food Item ID")
     var foodItemId: String
-    
+
     init() {}
-    
+
     init(foodItemId: String) {
         self.foodItemId = foodItemId
     }
-    
+
     func perform() async throws -> some IntentResult {
         // Create model container with App Group support
         let schema = Schema([FoodItem.self])
@@ -38,13 +38,14 @@ struct ToggleFoodStatusIntent: AppIntent {
             allowsSave: true,
             groupContainer: .identifier("group.tomercode.nutritiontracker")
         )
-        
+
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             let context = ModelContext(container)
-            
+
             // Find the food item by ID
             guard let uuid = UUID(uuidString: foodItemId) else {
+                print("Invalid UUID string: \(foodItemId)")
                 throw IntentError.foodItemNotFound
             }
             
@@ -55,10 +56,13 @@ struct ToggleFoodStatusIntent: AppIntent {
             )
             
             let items = try context.fetch(descriptor)
+            print("Found \(items.count) items for UUID: \(uuid)")
             
             if let foodItem = items.first {
+                let oldStatus = foodItem.status
                 // Toggle the status
                 foodItem.toggleStatus()
+                print("Toggled item '\(foodItem.name)' from \(oldStatus) to \(foodItem.status)")
                 
                 try context.save()
                 
@@ -67,10 +71,9 @@ struct ToggleFoodStatusIntent: AppIntent {
                 
                 return .result()
             } else {
+                print("No food item found with UUID: \(uuid)")
                 throw IntentError.foodItemNotFound
-            }
-            
-        } catch {
+            }        } catch {
             print("Error toggling food status: \(error)")
             throw IntentError.databaseError
         }
@@ -80,7 +83,7 @@ struct ToggleFoodStatusIntent: AppIntent {
 enum IntentError: Error, LocalizedError {
     case foodItemNotFound
     case databaseError
-    
+
     var errorDescription: String? {
         switch self {
         case .foodItemNotFound:

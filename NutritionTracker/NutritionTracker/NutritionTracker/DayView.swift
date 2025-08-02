@@ -197,7 +197,12 @@ struct DayView: View {
             }
             .padding(.vertical, AppTheme.paddingM)
         }
+        .scrollContentBackground(.hidden)
         .background(AppTheme.secondaryBackground)
+        .safeAreaInset(edge: .bottom) {
+            // Add bottom padding to ensure content doesn't overlap tab bar
+            Color.clear.frame(height: 20)
+        }
         .sheet(isPresented: $showingAddFood) {
             AddFoodView(targetDate: date)
         }
