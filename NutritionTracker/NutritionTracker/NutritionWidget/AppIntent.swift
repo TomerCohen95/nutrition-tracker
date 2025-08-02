@@ -48,32 +48,33 @@ struct ToggleFoodStatusIntent: AppIntent {
                 print("Invalid UUID string: \(foodItemId)")
                 throw IntentError.foodItemNotFound
             }
-            
+
             let descriptor = FetchDescriptor<FoodItem>(
                 predicate: #Predicate<FoodItem> { item in
                     item.id == uuid
-                }
+                    }
             )
-            
+
             let items = try context.fetch(descriptor)
             print("Found \(items.count) items for UUID: \(uuid)")
-            
+
             if let foodItem = items.first {
                 let oldStatus = foodItem.status
                 // Toggle the status
                 foodItem.toggleStatus()
                 print("Toggled item '\(foodItem.name)' from \(oldStatus) to \(foodItem.status)")
-                
+
                 try context.save()
-                
+
                 // Request widget timeline reload
                 WidgetCenter.shared.reloadTimelines(ofKind: "NutritionWidget")
-                
+
                 return .result()
             } else {
                 print("No food item found with UUID: \(uuid)")
                 throw IntentError.foodItemNotFound
-            }        } catch {
+            }
+        } catch {
             print("Error toggling food status: \(error)")
             throw IntentError.databaseError
         }
