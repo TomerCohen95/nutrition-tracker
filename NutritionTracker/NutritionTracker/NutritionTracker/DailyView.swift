@@ -11,6 +11,7 @@ import WidgetKit
 
 struct DailyView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) var colorScheme
     @Query private var allFoodItems: [FoodItem]
     @Query(sort: \CalorieGoal.effectiveDate, order: .reverse) var calorieGoals: [CalorieGoal]
     @State private var showingAddFood = false
@@ -93,7 +94,7 @@ struct DailyView: View {
                         .scaleEffect(y: 2)
                 }
                 .padding(AppTheme.paddingL)
-                .cardStyle(backgroundColor: AppTheme.lightGreen)
+                .cardStyle(backgroundColor: AppTheme.adaptiveLightGreen(colorScheme))
                 
                 // Food Items Section
                 VStack(alignment: .leading, spacing: AppTheme.paddingM) {
@@ -138,10 +139,20 @@ struct DailyView: View {
                         .cardStyle()
                     } else {
                         // Food Items Cards
-                        LazyVStack(spacing: AppTheme.paddingS) {
-                            ForEach(todaysItems, id: \.id) { item in
-                                FoodItemCard(item: item) {
-                                    toggleItemStatus(item)
+                        if todaysItems.isEmpty {
+                            Text("No food items for today")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            LazyVStack(spacing: AppTheme.paddingS) {
+                                ForEach(todaysItems, id: \.id) { item in
+                                    FoodItemCard(item: item, onToggle: {
+                                        toggleItemStatus(item)
+                                    }, onDelete: {
+                                        if let index = todaysItems.firstIndex(of: item) {
+                                            deleteItems(offsets: IndexSet([index]))
+                                        }
+                                    })
                                 }
                             }
                         }
@@ -207,8 +218,16 @@ struct DailyView: View {
 }
 
 struct FoodItemCard: View {
+    @Environment(\.colorScheme) var colorScheme
     let item: FoodItem
     let onToggle: () -> Void
+    let onDelete: (() -> Void)?
+    
+    init(item: FoodItem, onToggle: @escaping () -> Void, onDelete: (() -> Void)? = nil) {
+        self.item = item
+        self.onToggle = onToggle
+        self.onDelete = onDelete
+    }
     
     var body: some View {
         HStack(spacing: AppTheme.paddingM) {
@@ -266,8 +285,23 @@ struct FoodItemCard: View {
             .padding(.vertical, AppTheme.paddingXS)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.radiusS)
-                    .fill(item.status == .eaten ? AppTheme.lightGreen : AppTheme.lightOrange)
+                    .fill(item.status == .eaten ? AppTheme.adaptiveLightGreen(colorScheme) : AppTheme.adaptiveLightOrange(colorScheme))
             )
+            
+            // Delete Button
+            if let onDelete = onDelete {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16))
+                        .foregroundColor(.red)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Circle()
+                                .fill(Color.red.opacity(0.1))
+                        )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
         .padding(AppTheme.paddingM)
         .cardStyle()

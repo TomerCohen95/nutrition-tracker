@@ -12,6 +12,7 @@ import WidgetKit
 struct AddFoodView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) var colorScheme
     
     @Query(sort: \FoodHistory.lastUsed, order: .reverse) private var foodHistory: [FoodHistory]
     @State private var historyRefreshTrigger = false
@@ -68,7 +69,7 @@ struct AddFoodView: View {
                                             }
                                             .frame(width: 90, alignment: .leading)
                                             .padding(AppTheme.paddingS)
-                                            .background(AppTheme.lightGreen)
+                                            .background(AppTheme.adaptiveLightGreen(colorScheme))
                                             .cornerRadius(AppTheme.radiusS)
                                         }
                                         .buttonStyle(PlainButtonStyle())

@@ -12,10 +12,23 @@ struct AppTheme {
     // MARK: - Colors
     static let primaryGreen = Color(red: 0.2, green: 0.7, blue: 0.4)
     static let secondaryGreen = Color(red: 0.15, green: 0.55, blue: 0.3)
-    static let lightGreen = Color(red: 0.9, green: 0.98, blue: 0.92)
+    
+    // Dark mode adaptive backgrounds using Color.init with light/dark variants
+    static let lightGreen = Color(.systemGreen).opacity(0.1)
+    static let darkGreen = Color(.systemGreen).opacity(0.2)
     
     static let accentOrange = Color(red: 1.0, green: 0.6, blue: 0.2)
-    static let lightOrange = Color(red: 1.0, green: 0.95, blue: 0.9)
+    static let lightOrange = Color(.systemOrange).opacity(0.1)
+    static let darkOrange = Color(.systemOrange).opacity(0.2)
+    
+    // Adaptive color getters
+    static func adaptiveLightGreen(_ colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? darkGreen : lightGreen
+    }
+    
+    static func adaptiveLightOrange(_ colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? darkOrange : lightOrange
+    }
     
     static let cardBackground = Color(UIColor.systemBackground)
     static let cardShadow = Color.black.opacity(0.05)
@@ -94,10 +107,12 @@ extension View {
 
 // MARK: - Button Styles
 struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) var colorScheme
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppTheme.headlineFont)
-            .foregroundColor(.white)
+            .foregroundColor(colorScheme == .dark ? Color.black : Color.white)
             .padding(.horizontal, AppTheme.paddingL)
             .padding(.vertical, AppTheme.paddingM)
             .background(
@@ -111,6 +126,8 @@ struct PrimaryButtonStyle: ButtonStyle {
 }
 
 struct SecondaryButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) var colorScheme
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppTheme.bodyFont)
@@ -119,7 +136,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .padding(.vertical, AppTheme.paddingS)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.radiusS)
-                    .fill(AppTheme.lightGreen)
+                    .fill(AppTheme.adaptiveLightGreen(colorScheme))
                     .opacity(configuration.isPressed ? 0.7 : 1.0)
             )
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
