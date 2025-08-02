@@ -1,0 +1,142 @@
+//
+//  EditFoodView.swift
+//  NutritionTracker
+//
+//  Created by User on 2025-08-02.
+//
+
+import SwiftUI
+import SwiftData
+import WidgetKit
+
+struct EditFoodView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) var colorScheme
+    
+    let foodItem: FoodItem
+    
+    @State private var name: String
+    @State private var calories: String
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    
+    init(foodItem: FoodItem) {
+        self.foodItem = foodItem
+        self._name = State(initialValue: foodItem.name)
+        self._calories = State(initialValue: String(foodItem.calories))
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Text("Edit Food")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveChanges()
+                }
+                .fontWeight(.semibold)
+                .disabled(name.isEmpty || calories.isEmpty)
+            }
+            .padding()
+            
+            // Form Content
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Food Name")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Enter food name", text: $name)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Calories")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Enter calories", text: $calories)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                
+                // Current values display
+                VStack(spacing: 8) {
+                    Text("Current: \(foodItem.name) - \(foodItem.calories) kcal")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                }
+            }
+            .padding()
+            
+            Spacer()
+        }
+        .background(Color(.systemBackground))
+        .alert("Error", isPresented: $showAlert) {
+            Button("OK") { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func saveChanges() {
+        // Validate input
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            alertMessage = "Please enter a food name"
+            showAlert = true
+            return
+        }
+        
+        guard let calorieValue = Int(calories), calorieValue > 0 else {
+            alertMessage = "Please enter a valid number of calories"
+            showAlert = true
+            return
+        }
+        
+        // Update the food item
+        foodItem.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        foodItem.calories = calorieValue
+        
+        do {
+            try modelContext.save()
+            
+            // Refresh widget
+            WidgetCenter.shared.reloadAllTimelines()
+            
+            dismiss()
+        } catch {
+            alertMessage = "Failed to save changes: \(error.localizedDescription)"
+            showAlert = true
+        }
+    }
+}
+
+#Preview {
+    @Previewable @State var sampleItem: FoodItem = {
+        let item = FoodItem(name: "Apple", calories: 95, date: Date())
+        item.status = .planned
+        return item
+    }()
+    
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: FoodItem.self, configurations: config)
+    
+    EditFoodView(foodItem: sampleItem)
+        .modelContainer(container)
+}

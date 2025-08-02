@@ -19,6 +19,10 @@ struct DailyView: View {
     @State private var showingSettings = false
     @State private var showingCopyTodays = false
     @State private var selectedItemToCopy: FoodItem?
+    @State private var showingEditFood = false
+    @State private var selectedItemToEdit: FoodItem?
+    @State private var isEditing = false
+    @State private var editedCalories = ""
     
     // Dynamic daily calorie goal based on date
     private var dailyGoal: Int {
@@ -150,22 +154,14 @@ struct DailyView: View {
                                     // Trigger UI refresh after calorie edit
                                     // The @Query will automatically update, but we can add additional logic here if needed
                                     WidgetCenter.shared.reloadAllTimelines()
+                                }, onEdit: {
+                                    selectedItemToEdit = item
+                                    showingEditFood = true
+                                }, onCopy: {
+                                    showCopyToDaysSheet(for: item)
+                                }, onDelete: {
+                                    deleteItem(item)
                                 })
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        deleteItem(item)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        showCopyToDaysSheet(for: item)
-                                    } label: {
-                                        Label("Copy to Days", systemImage: "doc.on.doc")
-                                    }
-                                    .tint(.blue)
-                                }
                             }
                         }
                     }
@@ -201,6 +197,11 @@ struct DailyView: View {
         .sheet(isPresented: $showingCopyTodays) {
             if let item = selectedItemToCopy {
                 CopyToDaysView(foodItem: item)
+            }
+        }
+        .sheet(isPresented: $showingEditFood) {
+            if let item = selectedItemToEdit {
+                EditFoodView(foodItem: item)
             }
         }
     }
@@ -258,16 +259,20 @@ struct FoodItemCard: View {
     let item: FoodItem
     let onToggle: () -> Void
     let onUpdate: (() -> Void)?
+    let onEdit: () -> Void
+    let onCopy: () -> Void
+    let onDelete: () -> Void
     
-    @State private var isEditing = false
-    @State private var editedCalories = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    init(item: FoodItem, onToggle: @escaping () -> Void, onUpdate: (() -> Void)? = nil) {
+    init(item: FoodItem, onToggle: @escaping () -> Void, onUpdate: (() -> Void)? = nil, onEdit: @escaping () -> Void, onCopy: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.item = item
         self.onToggle = onToggle
         self.onUpdate = onUpdate
+        self.onEdit = onEdit
+        self.onCopy = onCopy
+        self.onDelete = onDelete
     }
     
     var body: some View {
@@ -312,46 +317,15 @@ struct FoodItemCard: View {
             
             Spacer()
             
-            // Calories Badge with inline editing
+            // Calories Badge
             VStack(alignment: .trailing, spacing: 2) {
-                if isEditing {
-                    TextField("Calories", text: $editedCalories)
-                        .font(AppTheme.headlineFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 80)
-                        .onSubmit {
-                            saveCalorieEdit()
-                        }
-                        .onAppear {
-                            editedCalories = String(item.calories)
-                        }
-                } else {
-                    Text("\(item.calories)")
-                        .font(AppTheme.headlineFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                }
+                Text("\(item.calories)")
+                    .font(AppTheme.headlineFont)
+                    .foregroundColor(AppTheme.textPrimary)
                 
-                if isEditing {
-                    HStack(spacing: 4) {
-                        Button("Save") {
-                            saveCalorieEdit()
-                        }
-                        .font(AppTheme.smallFont)
-                        .foregroundColor(.blue)
-                        
-                        Button("Cancel") {
-                            cancelEdit()
-                        }
-                        .font(AppTheme.smallFont)
-                        .foregroundColor(.red)
-                    }
-                } else {
-                    Text("kcal")
-                        .font(AppTheme.smallFont)
-                        .foregroundColor(AppTheme.textSecondary)
-                }
+                Text("kcal")
+                    .font(AppTheme.smallFont)
+                    .foregroundColor(AppTheme.textSecondary)
             }
             .padding(.horizontal, AppTheme.paddingS)
             .padding(.vertical, AppTheme.paddingXS)
@@ -359,13 +333,29 @@ struct FoodItemCard: View {
                 RoundedRectangle(cornerRadius: AppTheme.radiusS)
                     .fill(item.status == .eaten ? AppTheme.adaptiveLightGreen(colorScheme) : AppTheme.adaptiveLightOrange(colorScheme))
             )
-            .onLongPressGesture {
-                startEditing()
-            }
             
         }
         .padding(AppTheme.paddingM)
         .cardStyle()
+        .contextMenu {
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            
+            Button {
+                onCopy()
+            } label: {
+                Label("Copy to Days", systemImage: "calendar.badge.plus")
+            }
+            
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
         .alert("Error", isPresented: $showAlert) {
             Button("OK") { }
         } message: {
@@ -373,41 +363,16 @@ struct FoodItemCard: View {
         }
     }
     
-    // MARK: - Editing Functions
-    private func startEditing() {
-        isEditing = true
-        editedCalories = String(item.calories)
-        
-        // Provide haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
-    }
-    
-    private func saveCalorieEdit() {
-        guard let newCalories = Int(editedCalories), newCalories > 0 else {
-            alertMessage = "Please enter a valid number of calories"
-            showAlert = true
-            return
-        }
-        
-        item.calories = newCalories
+    // MARK: - Helper Functions
+    private func deleteItem(_ item: FoodItem) {
+        modelContext.delete(item)
         
         do {
             try modelContext.save()
-            isEditing = false
-            onUpdate?() // Notify parent to refresh UI
-            
-            // Refresh widget
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
-            alertMessage = "Failed to save changes: \(error.localizedDescription)"
-            showAlert = true
+            print("Failed to delete item: \(error)")
         }
-    }
-    
-    private func cancelEdit() {
-        isEditing = false
-        editedCalories = String(item.calories)
     }
 }
 

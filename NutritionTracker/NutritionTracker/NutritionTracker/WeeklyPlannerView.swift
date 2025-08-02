@@ -20,6 +20,10 @@ struct WeeklyPlannerView: View {
     @State private var showingCopyConfirmation = false
     @State private var viewMode: ViewMode = .week
     @State private var currentMonth = Date()
+    @State private var showingEditFood = false
+    @State private var selectedItemToEdit: FoodItem?
+    @State private var showingCopyTodays = false
+    @State private var selectedItemToCopy: FoodItem?
     
     enum ViewMode: String, CaseIterable {
         case week = "Week"
@@ -87,7 +91,7 @@ struct WeeklyPlannerView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // View Mode Picker
                 Picker("View Mode", selection: $viewMode) {
@@ -98,7 +102,7 @@ struct WeeklyPlannerView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal, AppTheme.paddingM)
-                .padding(.bottom, AppTheme.paddingS)
+                .padding(.top, AppTheme.paddingXS)
                 
                 // Calendar Navigation
                 if viewMode == .month {
@@ -138,6 +142,16 @@ struct WeeklyPlannerView: View {
                 sourceDate: selectedDate,
                 onCopy: copyDayToMultipleDates
             )
+        }
+        .sheet(isPresented: $showingEditFood) {
+            if let item = selectedItemToEdit {
+                EditFoodView(foodItem: item)
+            }
+        }
+        .sheet(isPresented: $showingCopyTodays) {
+            if let item = selectedItemToCopy {
+                CopyToDaysView(foodItem: item)
+            }
         }
     }
     
@@ -193,7 +207,7 @@ struct WeeklyPlannerView: View {
             }
             .padding(.horizontal, AppTheme.paddingM)
         }
-        .padding(.vertical, AppTheme.paddingS)
+        .padding(.vertical, AppTheme.paddingXS)
     }
     
     private var monthCalendarView: some View {
@@ -225,7 +239,7 @@ struct WeeklyPlannerView: View {
             }
             .padding(.horizontal, AppTheme.paddingM)
         }
-        .padding(.vertical, AppTheme.paddingS)
+        .padding(.vertical, AppTheme.paddingXS)
     }
     
     private var selectedDayContentView: some View {
@@ -254,24 +268,32 @@ struct WeeklyPlannerView: View {
                     VStack(alignment: .trailing, spacing: AppTheme.paddingXS) {
                         HStack(spacing: AppTheme.paddingS) {
                             Button(action: { showingAddFood = true }) {
-                                Label("Add Food", systemImage: "plus")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, AppTheme.paddingM)
-                                    .padding(.vertical, AppTheme.paddingS)
-                                    .background(AppTheme.primaryGreen)
-                                    .cornerRadius(20)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus")
+                                    Text("Add Food")
+                                }
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, AppTheme.paddingM)
+                                .padding(.vertical, AppTheme.paddingS)
+                                .background(AppTheme.primaryGreen)
+                                .cornerRadius(20)
+                                .fixedSize(horizontal: true, vertical: false)
                             }
                             
                             if !selectedDayItems.isEmpty {
                                 Button(action: { showingCopyDayAlert = true }) {
-                                    Label("Copy Day", systemImage: "doc.on.doc")
-                                        .font(AppTheme.captionFont)
-                                        .foregroundColor(AppTheme.primaryGreen)
-                                        .padding(.horizontal, AppTheme.paddingM)
-                                        .padding(.vertical, AppTheme.paddingS)
-                                        .background(AppTheme.lightGreen)
-                                        .cornerRadius(20)
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "doc.on.doc")
+                                        Text("Copy Day")
+                                    }
+                                    .font(AppTheme.captionFont)
+                                    .foregroundColor(AppTheme.primaryGreen)
+                                    .padding(.horizontal, AppTheme.paddingM)
+                                    .padding(.vertical, AppTheme.paddingS)
+                                    .background(AppTheme.lightGreen)
+                                    .cornerRadius(20)
+                                    .fixedSize(horizontal: true, vertical: false)
                                 }
                             }
                         }
@@ -317,14 +339,16 @@ struct WeeklyPlannerView: View {
                             item: item,
                             selectedDate: selectedDate,
                             onToggle: { toggleItemStatus(item) },
-                            onDelete: { deleteItem(item) }
+                            onDelete: { deleteItem(item) },
+                            onEdit: { editItem(item) },
+                            onCopy: { copyItem(item) }
                         )
                     }
                 }
                 .padding(.horizontal, AppTheme.paddingM)
             }
         }
-        .padding(.vertical, AppTheme.paddingM)
+        .padding(.vertical, AppTheme.paddingS)
         .background(AppTheme.secondaryBackground)
     }
     
@@ -396,6 +420,16 @@ struct WeeklyPlannerView: View {
         } catch {
             print("Error deleting item: \(error)")
         }
+    }
+    
+    private func editItem(_ item: FoodItem) {
+        selectedItemToEdit = item
+        showingEditFood = true
+    }
+    
+    private func copyItem(_ item: FoodItem) {
+        selectedItemToCopy = item
+        showingCopyTodays = true
     }
     
     private func copyDayToMultipleDates(_ destinationDates: [Date]) {
@@ -570,6 +604,8 @@ struct WeeklyFoodItemRow: View {
     let selectedDate: Date
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    let onCopy: () -> Void
     
     private var canToggleStatus: Bool {
         // Can only toggle to "eaten" for today and past days
@@ -619,6 +655,25 @@ struct WeeklyFoodItemRow: View {
         }
         .padding(AppTheme.paddingM)
         .cardStyle()
+        .contextMenu {
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            
+            Button {
+                onCopy()
+            } label: {
+                Label("Copy to Days", systemImage: "calendar.badge.plus")
+            }
+            
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 }
 

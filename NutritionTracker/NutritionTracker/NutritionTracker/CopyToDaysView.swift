@@ -23,118 +23,130 @@ struct CopyToDaysView: View {
     private let calendar = Calendar.current
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: AppTheme.paddingL) {
-                // Food Item Preview
-                VStack(alignment: .leading, spacing: AppTheme.paddingM) {
-                    Text("Copy Food Item")
-                        .font(AppTheme.headlineFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                    
-                    HStack(spacing: AppTheme.paddingM) {
-                        VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
-                            Text(foodItem.name)
-                                .font(AppTheme.bodyFont)
-                                .fontWeight(.medium)
-                                .foregroundColor(AppTheme.textPrimary)
-                            
-                            Text("\(foodItem.calories) kcal")
-                                .font(AppTheme.smallFont)
-                                .foregroundColor(AppTheme.textSecondary)
-                        }
-                        
-                        Spacer()
-                        
-                        Text("\(foodItem.calories)")
-                            .font(AppTheme.headlineFont)
-                            .foregroundColor(AppTheme.textPrimary)
-                            .padding(.horizontal, AppTheme.paddingS)
-                            .padding(.vertical, AppTheme.paddingXS)
-                            .background(
-                                RoundedRectangle(cornerRadius: AppTheme.radiusS)
-                                    .fill(AppTheme.lightGreen)
-                            )
-                    }
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Button("Cancel") {
+                    dismiss()
                 }
-                .padding(AppTheme.paddingM)
-                .cardStyle()
-                
-                // Week Navigation
-                HStack {
-                    Button(action: { currentWeekOffset -= 1 }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(AppTheme.primaryGreen)
-                    }
-                    
-                    Spacer()
-                    
-                    Text(weekRangeText)
-                        .font(AppTheme.bodyFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                    
-                    Spacer()
-                    
-                    Button(action: { currentWeekOffset += 1 }) {
-                        Image(systemName: "chevron.right")
-                            .font(.title2)
-                            .foregroundColor(AppTheme.primaryGreen)
-                    }
-                }
-                .padding(.horizontal, AppTheme.paddingM)
-                
-                // Day Selection Grid
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: AppTheme.paddingS) {
-                    ForEach(weekDays, id: \.self) { date in
-                        DaySelectionCard(
-                            date: date,
-                            isSelected: selectedDates.contains(date),
-                            isToday: calendar.isDateInToday(date),
-                            onTap: { toggleDateSelection(date) }
-                        )
-                    }
-                }
-                .padding(.horizontal, AppTheme.paddingM)
+                .foregroundColor(.secondary)
                 
                 Spacer()
                 
-                // Action Buttons
-                VStack(spacing: AppTheme.paddingM) {
-                    Button(action: copyToSelectedDays) {
-                        Text("Copy to \(selectedDates.count) day\(selectedDates.count == 1 ? "" : "s")")
-                            .font(AppTheme.bodyFont)
-                            .fontWeight(.medium)
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(selectedDates.isEmpty)
-                    .opacity(selectedDates.isEmpty ? 0.6 : 1.0)
-                    
-                    Button("Select All Week") {
-                        selectAllWeekDays()
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                }
-                .padding(.horizontal, AppTheme.paddingM)
-            }
-            .padding(.vertical, AppTheme.paddingM)
-            .background(AppTheme.secondaryBackground)
-            .navigationTitle("Copy to Days")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(AppTheme.textSecondary)
-                }
-            }
-            .alert("Success", isPresented: $showingAlert) {
-                Button("OK") {
+                Text("Copy to Days")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                Button("Done") {
                     dismiss()
                 }
-            } message: {
-                Text(alertMessage)
+                .foregroundColor(.secondary)
             }
+            .padding()
+            
+            // Food Item Preview
+            VStack(spacing: 12) {
+                Text("Copy this food item:")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(foodItem.name)
+                            .font(.body)
+                            .fontWeight(.medium)
+                        
+                        Text("\(foodItem.calories) kcal")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("\(foodItem.calories)")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.green.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+            .padding(.horizontal)
+            
+            // Week Navigation
+            HStack {
+                Button(action: { currentWeekOffset -= 1 }) {
+                    Image(systemName: "chevron.left")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+                
+                Spacer()
+                
+                Text(weekRangeText)
+                    .font(.body)
+                    .fontWeight(.medium)
+                
+                Spacer()
+                
+                Button(action: { currentWeekOffset += 1 }) {
+                    Image(systemName: "chevron.right")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            // Day Selection Grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 12) {
+                ForEach(weekDays, id: \.self) { date in
+                    DaySelectionCard(
+                        date: date,
+                        isSelected: selectedDates.contains(date),
+                        isToday: calendar.isDateInToday(date),
+                        onTap: { toggleDateSelection(date) }
+                    )
+                }
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+            
+            // Action Buttons
+            VStack(spacing: 12) {
+                Button(action: copyToSelectedDays) {
+                    Text("Copy to \(selectedDates.count) day\(selectedDates.count == 1 ? "" : "s")")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(selectedDates.isEmpty ? Color.gray : Color.blue)
+                        .cornerRadius(10)
+                }
+                .disabled(selectedDates.isEmpty)
+                
+                Button("Select All Week") {
+                    selectAllWeekDays()
+                }
+                .font(.body)
+                .foregroundColor(.blue)
+            }
+            .padding(.horizontal)
+        }
+        .background(Color(.systemBackground))
+        .alert("Success", isPresented: $showingAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text(alertMessage)
         }
     }
     
@@ -189,7 +201,7 @@ struct CopyToDaysView: View {
         for targetDate in selectedDates {
             // Create a new food item for each selected date
             let newFoodItem = FoodItem(name: foodItem.name, calories: foodItem.calories, date: targetDate)
-            newFoodItem.status = .planned // Always start as planned
+            newFoodItem.status = .planned
             
             modelContext.insert(newFoodItem)
             copiedCount += 1
@@ -222,22 +234,23 @@ struct DaySelectionCard: View {
         Button(action: onTap) {
             VStack(spacing: 4) {
                 Text(dayName)
-                    .font(AppTheme.smallFont)
-                    .foregroundColor(isSelected ? .white : AppTheme.textSecondary)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(isSelected ? .white : .secondary)
                 
                 Text("\(calendar.component(.day, from: date))")
-                    .font(AppTheme.bodyFont)
+                    .font(.body)
                     .fontWeight(isToday ? .bold : .medium)
-                    .foregroundColor(isSelected ? .white : AppTheme.textPrimary)
+                    .foregroundColor(isSelected ? .white : .primary)
             }
             .frame(height: 60)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.radiusS)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(backgroundColor)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.radiusS)
+                RoundedRectangle(cornerRadius: 8)
                     .stroke(borderColor, lineWidth: isToday ? 2 : 0)
             )
         }
@@ -252,15 +265,15 @@ struct DaySelectionCard: View {
     
     private var backgroundColor: Color {
         if isSelected {
-            return AppTheme.primaryGreen
+            return .blue
         } else {
-            return AppTheme.cardBackground
+            return Color(.systemGray6)
         }
     }
     
     private var borderColor: Color {
         if isToday {
-            return AppTheme.primaryGreen
+            return .blue
         } else {
             return Color.clear
         }
