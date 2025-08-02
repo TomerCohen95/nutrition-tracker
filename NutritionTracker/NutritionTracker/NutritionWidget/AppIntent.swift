@@ -5,6 +5,7 @@
 //  Interactive widget intents for marking foods as eaten
 //
 
+import Foundation
 import WidgetKit
 import AppIntents
 import SwiftData
@@ -31,8 +32,11 @@ struct ToggleFoodStatusIntent: AppIntent {
         // Create model container with App Group support
         let schema = Schema([FoodItem.self])
         let modelConfiguration = ModelConfiguration(
+            "NutritionTracker",
             schema: schema,
-            isStoredInMemoryOnly: false
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            groupContainer: .identifier("group.tomercode.nutritiontracker")
         )
         
         do {
@@ -40,9 +44,13 @@ struct ToggleFoodStatusIntent: AppIntent {
             let context = ModelContext(container)
             
             // Find the food item by ID
+            guard let uuid = UUID(uuidString: foodItemId) else {
+                throw IntentError.foodItemNotFound
+            }
+            
             let descriptor = FetchDescriptor<FoodItem>(
                 predicate: #Predicate<FoodItem> { item in
-                    item.id.uuidString == foodItemId
+                    item.id == uuid
                 }
             )
             
