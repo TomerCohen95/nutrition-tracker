@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -141,9 +142,17 @@ struct SettingsView: View {
         
         do {
             try modelContext.save()
+            
+            // Force refresh widgets after calorie goal change
+            WidgetCenter.shared.reloadAllTimelines()
+            
             alertMessage = "Your daily calorie goal has been updated to \(calories) calories"
             showingAlert = true
+            
+            // Debug: Print the new goal to verify it was saved
+            print("CalorieGoal saved: \(calories) calories effective from \(Date())")
         } catch {
+            print("Error saving CalorieGoal: \(error)")
             alertMessage = "Failed to save calorie goal. Please try again."
             showingAlert = true
         }

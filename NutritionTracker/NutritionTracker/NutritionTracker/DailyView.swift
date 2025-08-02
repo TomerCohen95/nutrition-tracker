@@ -159,6 +159,8 @@ struct DailyView: View {
                                     showingEditFood = true
                                 }, onCopy: {
                                     showCopyToDaysSheet(for: item)
+                                }, onDuplicate: {
+                                    duplicateItem(item)
                                 }, onDelete: {
                                     deleteItem(item)
                                 })
@@ -251,6 +253,20 @@ struct DailyView: View {
         selectedItemToCopy = item
         showingCopyTodays = true
     }
+    
+    private func duplicateItem(_ item: FoodItem) {
+        let duplicatedItem = FoodItem(name: item.name, calories: item.calories, date: Date())
+        modelContext.insert(duplicatedItem)
+        
+        do {
+            try modelContext.save()
+            
+            // Refresh widget when item is duplicated
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            print("Error duplicating item: \(error)")
+        }
+    }
 }
 
 struct FoodItemCard: View {
@@ -261,17 +277,19 @@ struct FoodItemCard: View {
     let onUpdate: (() -> Void)?
     let onEdit: () -> Void
     let onCopy: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
     
     @State private var showAlert = false
     @State private var alertMessage = ""
     
-    init(item: FoodItem, onToggle: @escaping () -> Void, onUpdate: (() -> Void)? = nil, onEdit: @escaping () -> Void, onCopy: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(item: FoodItem, onToggle: @escaping () -> Void, onUpdate: (() -> Void)? = nil, onEdit: @escaping () -> Void, onCopy: @escaping () -> Void, onDuplicate: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.item = item
         self.onToggle = onToggle
         self.onUpdate = onUpdate
         self.onEdit = onEdit
         self.onCopy = onCopy
+        self.onDuplicate = onDuplicate
         self.onDelete = onDelete
     }
     
@@ -342,6 +360,12 @@ struct FoodItemCard: View {
                 onEdit()
             } label: {
                 Label("Edit", systemImage: "pencil")
+            }
+            
+            Button {
+                onDuplicate()
+            } label: {
+                Label("Duplicate", systemImage: "doc.on.doc")
             }
             
             Button {
