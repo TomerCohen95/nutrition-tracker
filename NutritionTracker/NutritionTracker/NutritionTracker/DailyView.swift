@@ -142,35 +142,29 @@ struct DailyView: View {
                         .cardStyle()
                     } else {
                         // Food Items Cards
-                        if todaysItems.isEmpty {
-                            Text("No food items for today")
-                                .foregroundColor(.secondary)
-                                .padding()
-                        } else {
-                            LazyVStack(spacing: AppTheme.paddingS) {
-                                ForEach(todaysItems, id: \.id) { item in
-                                    FoodItemCard(item: item, onToggle: {
-                                        toggleItemStatus(item)
-                                    }, onUpdate: {
-                                        // Trigger UI refresh after calorie edit
-                                        // The @Query will automatically update, but we can add additional logic here if needed
-                                        WidgetCenter.shared.reloadAllTimelines()
-                                    })
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            deleteItem(item)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                        LazyVStack(spacing: AppTheme.paddingS) {
+                            ForEach(todaysItems, id: \.id) { item in
+                                FoodItemCard(item: item, onToggle: {
+                                    toggleItemStatus(item)
+                                }, onUpdate: {
+                                    // Trigger UI refresh after calorie edit
+                                    // The @Query will automatically update, but we can add additional logic here if needed
+                                    WidgetCenter.shared.reloadAllTimelines()
+                                })
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        deleteItem(item)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                    .swipeActions(edge: .leading) {
-                                        Button {
-                                            showCopyToDaysSheet(for: item)
-                                        } label: {
-                                            Label("Copy to Days", systemImage: "doc.on.doc")
-                                        }
-                                        .tint(.blue)
+                                }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        showCopyToDaysSheet(for: item)
+                                    } label: {
+                                        Label("Copy to Days", systemImage: "doc.on.doc")
                                     }
+                                    .tint(.blue)
                                 }
                             }
                         }
