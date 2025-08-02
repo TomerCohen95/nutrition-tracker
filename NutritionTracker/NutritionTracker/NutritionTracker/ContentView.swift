@@ -16,7 +16,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             // Swipeable Days View
             NavigationView {
-                SwipeableDaysView()
+                OptimizedSwipeableDaysView()
             }
             .tabItem {
                 Image(systemName: "fork.knife.circle.fill")
