@@ -14,15 +14,13 @@ struct ContentView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Today's View (Original Daily View)
+            // Swipeable Days View
             NavigationView {
-                DailyView()
-                    .navigationTitle("Today")
-                    .navigationBarTitleDisplayMode(.large)
+                SwipeableDaysView()
             }
             .tabItem {
                 Image(systemName: "fork.knife.circle.fill")
-                Text("Today")
+                Text("Days")
             }
             .tag(0)
             
