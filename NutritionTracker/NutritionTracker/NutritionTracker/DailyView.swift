@@ -196,14 +196,28 @@ struct DailyView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $showingCopyTodays) {
+        .sheet(isPresented: $showingCopyTodays, onDismiss: {
+            selectedItemToCopy = nil
+        }) {
             if let item = selectedItemToCopy {
                 CopyToDaysView(foodItem: item)
+            } else {
+                Text("Error loading food item")
+                    .onAppear {
+                        showingCopyTodays = false
+                    }
             }
         }
-        .sheet(isPresented: $showingEditFood) {
+        .sheet(isPresented: $showingEditFood, onDismiss: {
+            selectedItemToEdit = nil
+        }) {
             if let item = selectedItemToEdit {
                 EditFoodView(foodItem: item)
+            } else {
+                Text("Error loading food item")
+                    .onAppear {
+                        showingEditFood = false
+                    }
             }
         }
     }
