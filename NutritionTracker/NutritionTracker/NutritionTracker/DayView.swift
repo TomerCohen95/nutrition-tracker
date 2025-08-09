@@ -48,7 +48,7 @@ struct DayView: View {
             .filter { $0.status == .eaten }
             .reduce(0) { $0 + $1.calories }
     }
-    
+
     // Calculate planned calories (including both eaten and planned items)
     private var caloriesPlanned: Int {
         dayItems
@@ -59,7 +59,7 @@ struct DayView: View {
     private var remainingCalories: Int {
         dailyGoal - caloriesEaten
     }
-    
+
     // Calculate remaining planned calories
     private var remainingPlannedCalories: Int {
         dailyGoal - caloriesPlanned
@@ -88,111 +88,78 @@ struct DayView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Fixed Progress Section (stays at top)
-            VStack(spacing: AppTheme.paddingM) {
+            VStack(spacing: AppTheme.paddingS) {
                 HStack {
-                    VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Progress")
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
 
-                        HStack(alignment: .bottom, spacing: AppTheme.paddingXS) {
-                            Text("\(caloriesEaten)")
-                                .font(AppTheme.titleFont)
-                                .foregroundColor(AppTheme.primaryGreen)
-
-                            Text("/ \(dailyGoal) kcal eaten")
-                                .font(AppTheme.bodyFont)
-                                .foregroundColor(AppTheme.textSecondary)
-                                .offset(y: -2)
-                        }
+                        Text("Goal: \(dailyGoal) kcal")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: AppTheme.paddingXS) {
-                        // Eaten stats
-                        VStack(alignment: .trailing) {
-                            if remainingCalories >= 0 {
-                                Text("Remaining to eat")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                Text("\(remainingCalories) kcal")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(AppTheme.primaryGreen)
-                            } else {
-                                Text("Over eaten")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(AppTheme.textSecondary)
-                                Text("\(abs(remainingCalories)) kcal")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(AppTheme.accentOrange)
-                            }
-                        }
-                        
-                        // Planned stats
-                        VStack(alignment: .trailing) {
-                            Text("Total planned")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(AppTheme.textSecondary)
-                            Text("\(caloriesPlanned) kcal")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(.blue)
-                        }
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Remaining")
+                            .font(.system(size: 11))
+                            .foregroundColor(AppTheme.textSecondary)
+                        Text("\(remainingCalories) kcal")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(
+                                remainingCalories >= 0
+                                    ? AppTheme.primaryGreen : AppTheme.accentOrange)
                     }
                 }
 
-                // Dual Progress Bars
-                VStack(spacing: AppTheme.paddingXS) {
+                // Compact dual progress bars
+                VStack(spacing: 6) {
                     // Eaten progress bar
                     HStack {
                         Text("Eaten")
-                            .font(AppTheme.captionFont)
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 60, alignment: .leading)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(AppTheme.primaryGreen)
+                            .frame(width: 55, alignment: .leading)
+
                         ProgressView(
                             value: min(Double(caloriesEaten), Double(dailyGoal)),
                             total: Double(dailyGoal)
                         )
-                        .tint(remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange)
-                        if remainingCalories >= 0 {
-                            Text("\(remainingCalories) left")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(AppTheme.primaryGreen)
-                                .frame(width: 70, alignment: .trailing)
-                        } else {
-                            Text("\(abs(remainingCalories)) over")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(AppTheme.accentOrange)
-                                .frame(width: 70, alignment: .trailing)
-                        }
+                        .tint(
+                            remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange
+                        )
+                        .scaleEffect(y: 0.8)
+
+                        Text("\(caloriesEaten)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 40, alignment: .trailing)
                     }
-                    
+
                     // Planned progress bar
                     HStack {
                         Text("Planned")
-                            .font(AppTheme.captionFont)
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 60, alignment: .leading)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 55, alignment: .leading)
+
                         ProgressView(
                             value: min(Double(caloriesPlanned), Double(dailyGoal)),
                             total: Double(dailyGoal)
                         )
                         .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
-                        if remainingPlannedCalories >= 0 {
-                            Text("\(remainingPlannedCalories) left")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(.blue)
-                                .frame(width: 70, alignment: .trailing)
-                        } else {
-                            Text("\(abs(remainingPlannedCalories)) over")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(.orange)
-                                .frame(width: 70, alignment: .trailing)
-                        }
+                        .scaleEffect(y: 0.8)
+
+                        Text("\(caloriesPlanned)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 40, alignment: .trailing)
                     }
                 }
             }
-            .padding(AppTheme.paddingL)
+            .padding(AppTheme.paddingM)
             .cardStyle(backgroundColor: AppTheme.adaptiveLightGreen(colorScheme))
             .padding(.horizontal, AppTheme.paddingM)
             .padding(.top, AppTheme.paddingM)

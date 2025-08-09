@@ -83,7 +83,7 @@ struct WeeklyPlannerView: View {
             .filter { $0.status == .eaten }
             .reduce(0) { $0 + $1.calories }
     }
-    
+
     private var caloriesPlanned: Int {
         selectedDayItems
             .reduce(0) { $0 + $1.calories }
@@ -96,7 +96,7 @@ struct WeeklyPlannerView: View {
     private var remainingCalories: Int {
         dailyGoal - caloriesEaten
     }
-    
+
     private var remainingPlannedCalories: Int {
         dailyGoal - caloriesPlanned
     }
@@ -260,21 +260,18 @@ struct WeeklyPlannerView: View {
     }
 
     private var selectedDayContentView: some View {
-        VStack(spacing: AppTheme.paddingM) {
+        VStack(spacing: AppTheme.paddingS) {
             // Header with date and stats
-            VStack(spacing: AppTheme.paddingM) {
+            VStack(spacing: AppTheme.paddingS) {
                 HStack {
-                    VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(dateTitle(for: selectedDate))
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
 
-                        // More compact layout for calorie display
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Goal: \(dailyGoal) cal")
-                                .font(.system(size: 12))
-                                .foregroundColor(AppTheme.textSecondary)
-                        }
+                        Text("Goal: \(dailyGoal) cal")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     Spacer()
@@ -312,12 +309,12 @@ struct WeeklyPlannerView: View {
                             }
                         }
 
-                        VStack(alignment: .trailing, spacing: AppTheme.paddingXS) {
+                        VStack(alignment: .trailing, spacing: 2) {
                             Text("Remaining")
-                                .font(.system(size: 12))
+                                .font(.system(size: 11))
                                 .foregroundColor(AppTheme.textSecondary)
                             Text("\(remainingCalories) cal")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(
                                     remainingCalories >= 0
                                         ? AppTheme.primaryGreen : AppTheme.accentOrange)
@@ -325,37 +322,47 @@ struct WeeklyPlannerView: View {
                     }
                 }
 
-                // Eaten Progress Bar
-                VStack(alignment: .leading, spacing: 4) {
+                // Compact dual progress bars
+                VStack(spacing: 6) {
+                    // Eaten Progress Bar
                     HStack {
                         Text("Eaten")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(AppTheme.primaryGreen)
-                        Spacer()
-                        Text("\(caloriesEaten) / \(dailyGoal)")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-                    ProgressView(value: Double(caloriesEaten), total: Double(dailyGoal))
-                        .tint(remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange)
-                }
+                            .frame(width: 55, alignment: .leading)
 
-                // Planned Progress Bar
-                VStack(alignment: .leading, spacing: 4) {
+                        ProgressView(value: Double(caloriesEaten), total: Double(dailyGoal))
+                            .tint(
+                                remainingCalories >= 0
+                                    ? AppTheme.primaryGreen : AppTheme.accentOrange
+                            )
+                            .scaleEffect(y: 0.8)
+
+                        Text("\(caloriesEaten)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 40, alignment: .trailing)
+                    }
+
+                    // Planned Progress Bar
                     HStack {
                         Text("Planned")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.blue)
-                        Spacer()
-                        Text("\(caloriesPlanned) / \(dailyGoal)")
-                            .font(.system(size: 12))
+                            .frame(width: 55, alignment: .leading)
+
+                        ProgressView(value: Double(caloriesPlanned), total: Double(dailyGoal))
+                            .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
+                            .scaleEffect(y: 0.8)
+
+                        Text("\(caloriesPlanned)")
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 40, alignment: .trailing)
                     }
-                    ProgressView(value: Double(caloriesPlanned), total: Double(dailyGoal))
-                        .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
                 }
             }
-            .padding(AppTheme.paddingL)
+            .padding(AppTheme.paddingM)
             .cardStyle(backgroundColor: AppTheme.lightGreen)
 
             // Food items list

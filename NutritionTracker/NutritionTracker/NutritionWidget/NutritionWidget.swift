@@ -235,7 +235,7 @@ struct MediumWidgetView: View {
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
-    
+
     private var remainingPlannedCalories: Int {
         entry.dailyGoal - entry.caloriesPlanned
     }
@@ -261,7 +261,7 @@ struct MediumWidgetView: View {
                             .font(.caption)
                             .fontWeight(.medium)
                     }
-                    
+
                     // Planned progress
                     HStack(spacing: 4) {
                         Text("Planned:")
@@ -296,7 +296,7 @@ struct MediumWidgetView: View {
                             .foregroundColor(.red)
                     }
                 }
-                
+
                 // Planned progress bar
                 HStack {
                     Text("Planned")
@@ -333,7 +333,8 @@ struct MediumWidgetView: View {
                             Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
                                 Image(systemName: item.2.systemImage)
                                     .font(.caption)
-                                    .foregroundColor(item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
+                                    .foregroundColor(
+                                        item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
                             }
 
                             Text(item.1)
@@ -397,7 +398,7 @@ struct LargeWidgetView: View {
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
-    
+
     private var remainingPlannedCalories: Int {
         entry.dailyGoal - entry.caloriesPlanned
     }
@@ -439,12 +440,12 @@ struct LargeWidgetView: View {
                                 .foregroundColor(.red)
                                 .fontWeight(.medium)
                         }
-                        
+
                         Text("eaten")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     // Planned stats
                     VStack(alignment: .trailing) {
                         if remainingPlannedCalories >= 0 {
@@ -458,14 +459,14 @@ struct LargeWidgetView: View {
                                 .foregroundColor(.orange)
                                 .fontWeight(.medium)
                         }
-                        
+
                         Text("planned")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            
+
             // Dual progress bars
             VStack(spacing: 4) {
                 // Eaten progress bar
@@ -480,7 +481,7 @@ struct LargeWidgetView: View {
                     )
                     .tint(remainingCalories >= 0 ? .green : .red)
                 }
-                
+
                 // Planned progress bar
                 HStack {
                     Text("Planned")
@@ -514,7 +515,8 @@ struct LargeWidgetView: View {
                             Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
                                 Image(systemName: item.2.systemImage)
                                     .font(.body)
-                                    .foregroundColor(item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
+                                    .foregroundColor(
+                                        item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
@@ -549,7 +551,7 @@ struct ExtraLargeWidgetView: View {
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
-    
+
     private var remainingPlannedCalories: Int {
         entry.dailyGoal - entry.caloriesPlanned
     }
@@ -597,7 +599,7 @@ struct ExtraLargeWidgetView: View {
                             .tint(remainingCalories >= 0 ? .green : .red)
                             .scaleEffect(y: 1.5)
                         }
-                        
+
                         // Planned progress bar
                         HStack {
                             Text("Planned")
@@ -637,7 +639,7 @@ struct ExtraLargeWidgetView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     // Planned stats
                     VStack(alignment: .trailing) {
                         Text("\(entry.caloriesPlanned)")
