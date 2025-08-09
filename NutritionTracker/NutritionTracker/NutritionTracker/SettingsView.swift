@@ -44,7 +44,7 @@ struct SettingsView: View {
                         .font(AppTheme.headlineFont)
                         .foregroundColor(AppTheme.textPrimary)
                     
-                    TextField("Enter calories (e.g., 2000)", text: $newCalorieGoal)
+                    TextField("Enter calories (e.g., 2500)", text: $newCalorieGoal)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.numberPad)
                     

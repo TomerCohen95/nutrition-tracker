@@ -29,7 +29,7 @@ struct Provider: TimelineProvider {
         SimpleEntry(
             date: Date(),
             caloriesEaten: 1234,
-            dailyGoal: 2000,
+            dailyGoal: 2500,
             foodItems: [
                 (UUID().uuidString, "Apple", .eaten, 95),
                 (UUID().uuidString, "Sandwich", .planned, 350),
@@ -43,7 +43,7 @@ struct Provider: TimelineProvider {
         let entry = SimpleEntry(
             date: Date(),
             caloriesEaten: 1234,
-            dailyGoal: 2000,
+            dailyGoal: 2500,
             foodItems: [
                 (UUID().uuidString, "Apple", .eaten, 95),
                 (UUID().uuidString, "Sandwich", .planned, 350),
@@ -125,7 +125,7 @@ struct Provider: TimelineProvider {
             return SimpleEntry(
                 date: date,
                 caloriesEaten: 0,
-                dailyGoal: 2000,
+                dailyGoal: 2500,
                 foodItems: [],
                 allItems: []
             )
@@ -304,7 +304,7 @@ struct MediumWidgetView: View {
     SimpleEntry(
         date: .now,
         caloriesEaten: 1234,
-        dailyGoal: 2000,
+        dailyGoal: 2500,
         foodItems: [
             ("1", "Apple", .eaten, 95),
             ("2", "Sandwich", .planned, 350),
@@ -319,7 +319,7 @@ struct MediumWidgetView: View {
     SimpleEntry(
         date: .now,
         caloriesEaten: 1800,
-        dailyGoal: 2000,
+        dailyGoal: 2500,
         foodItems: [
             ("1", "Apple", .eaten, 95),
             ("2", "Sandwich", .planned, 350),
@@ -609,7 +609,7 @@ struct ExtraLargeWidgetView: View {
     SimpleEntry(
         date: .now,
         caloriesEaten: 1234,
-        dailyGoal: 2000,
+        dailyGoal: 2500,
         foodItems: [
             ("1", "Apple", .eaten, 95),
             ("2", "Sandwich", .planned, 350),
@@ -624,7 +624,7 @@ struct ExtraLargeWidgetView: View {
     SimpleEntry(
         date: .now,
         caloriesEaten: 1800,
-        dailyGoal: 2000,
+        dailyGoal: 2500,
         foodItems: [
             ("1", "Apple", .eaten, 95),
             ("2", "Sandwich", .planned, 350),
@@ -641,7 +641,7 @@ struct ExtraLargeWidgetView: View {
     SimpleEntry(
         date: .now,
         caloriesEaten: 1400,
-        dailyGoal: 2000,
+        dailyGoal: 2500,
         foodItems: [
             ("1", "Apple", .eaten, 95),
             ("2", "Sandwich", .planned, 350),

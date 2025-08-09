@@ -24,6 +24,6 @@ class CalorieGoal {
         
         // Sort by effectiveDate in descending order and take the first (most recent)
         let mostRecentGoal = applicableGoals.sorted { $0.effectiveDate > $1.effectiveDate }.first
-        return mostRecentGoal?.goalCalories ?? 2000 // Default to 2000 if no goal set
+        return mostRecentGoal?.goalCalories ?? 2500 // Default to 2500 if no goal set
     }
 }
