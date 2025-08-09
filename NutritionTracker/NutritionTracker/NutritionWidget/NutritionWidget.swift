@@ -409,9 +409,166 @@ struct MediumWidgetView: View {
     )
 }
 
+// MARK: - Large Widget Components
+
+struct LargeWidgetHeaderView: View {
+    let entry: SimpleEntry
+    let remainingCalories: Int
+    let remainingPlannedCalories: Int
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text("Today's Nutrition")
+                    .font(.system(size: 16, weight: .medium))
+
+                HStack(alignment: .bottom, spacing: 3) {
+                    Text("\(entry.caloriesEaten)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+
+                    Text("/ \(entry.dailyGoal) kcal")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 6) {
+                // Eaten stats
+                VStack(alignment: .trailing) {
+                    if remainingCalories >= 0 {
+                        Text("\(remainingCalories) left")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
+                    } else {
+                        Text("\(abs(remainingCalories)) over")
+                            .font(.system(size: 11))
+                            .foregroundColor(.red)
+                            .fontWeight(.medium)
+                    }
+
+                    Text("eaten")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+
+                // Planned stats
+                VStack(alignment: .trailing) {
+                    if remainingPlannedCalories >= 0 {
+                        Text("\(remainingPlannedCalories) left")
+                            .font(.system(size: 11))
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
+                    } else {
+                        Text("\(abs(remainingPlannedCalories)) over")
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                            .fontWeight(.medium)
+                    }
+
+                    Text("planned")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+}
+
+struct LargeWidgetProgressView: View {
+    let entry: SimpleEntry
+    let remainingCalories: Int
+    let remainingPlannedCalories: Int
+    
+    var body: some View {
+        VStack(spacing: 3) {
+            // Eaten progress bar
+            HStack {
+                Text("Eaten")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .frame(width: 50, alignment: .leading)
+                ProgressView(
+                    value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
+                    total: Double(entry.dailyGoal)
+                )
+                .tint(remainingCalories >= 0 ? .green : .red)
+                .scaleEffect(y: 0.7)
+            }
+
+            // Planned progress bar
+            HStack {
+                Text("Planned")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .frame(width: 50, alignment: .leading)
+                ProgressView(
+                    value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
+                    total: Double(entry.dailyGoal)
+                )
+                .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
+                .scaleEffect(y: 0.7)
+            }
+        }
+    }
+}
+
+struct LargeWidgetFoodItemView: View {
+    let item: (String, String, FoodItem.FoodStatus, Int)
+    let itemSize: LargeWidgetSizing
+    
+    var body: some View {
+        HStack {
+            Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
+                Image(systemName: item.2.systemImage)
+                    .font(.system(size: itemSize.iconSize))
+                    .foregroundColor(
+                        item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.1)
+                    .font(.system(size: itemSize.titleSize))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+
+                Text("\(item.3) kcal")
+                    .font(.system(size: itemSize.subtitleSize))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(itemSize.padding)
+        .background(Color(.systemGray6))
+        .cornerRadius(6)
+    }
+}
+
+struct LargeWidgetSizing {
+    let titleSize: CGFloat
+    let subtitleSize: CGFloat
+    let iconSize: CGFloat
+    let padding: CGFloat
+    
+    static func forItemCount(_ count: Int) -> LargeWidgetSizing {
+        switch count {
+        case 1...4:
+            return LargeWidgetSizing(titleSize: 16, subtitleSize: 12, iconSize: 15, padding: 8)
+        case 5...6:
+            return LargeWidgetSizing(titleSize: 15, subtitleSize: 11, iconSize: 14, padding: 7)
+        default:
+            return LargeWidgetSizing(titleSize: 14, subtitleSize: 10, iconSize: 13, padding: 6)
+        }
+    }
+}
+
 struct LargeWidgetView: View {
     let entry: SimpleEntry
-
+    
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
@@ -422,98 +579,19 @@ struct LargeWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Header with stats
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Today's Nutrition")
-                        .font(.system(size: 16, weight: .medium))
+            LargeWidgetHeaderView(
+                entry: entry,
+                remainingCalories: remainingCalories,
+                remainingPlannedCalories: remainingPlannedCalories
+            )
+            
+            LargeWidgetProgressView(
+                entry: entry,
+                remainingCalories: remainingCalories,
+                remainingPlannedCalories: remainingPlannedCalories
+            )
 
-                    HStack(alignment: .bottom, spacing: 3) {
-                        Text("\(entry.caloriesEaten)")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.primary)
-
-                        Text("/ \(entry.dailyGoal) kcal")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    // Eaten stats
-                    VStack(alignment: .trailing) {
-                        if remainingCalories >= 0 {
-                            Text("\(remainingCalories) left")
-                                .font(.system(size: 11))
-                                .foregroundColor(.green)
-                                .fontWeight(.medium)
-                        } else {
-                            Text("\(abs(remainingCalories)) over")
-                                .font(.system(size: 11))
-                                .foregroundColor(.red)
-                                .fontWeight(.medium)
-                        }
-
-                        Text("eaten")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                    }
-
-                    // Planned stats
-                    VStack(alignment: .trailing) {
-                        if remainingPlannedCalories >= 0 {
-                            Text("\(remainingPlannedCalories) left")
-                                .font(.system(size: 11))
-                                .foregroundColor(.blue)
-                                .fontWeight(.medium)
-                        } else {
-                            Text("\(abs(remainingPlannedCalories)) over")
-                                .font(.system(size: 11))
-                                .foregroundColor(.orange)
-                                .fontWeight(.medium)
-                        }
-
-                        Text("planned")
-                            .font(.system(size: 9))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            // Dual progress bars
-            VStack(spacing: 3) {
-                // Eaten progress bar
-                HStack {
-                    Text("Eaten")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .frame(width: 50, alignment: .leading)
-                    ProgressView(
-                        value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
-                        total: Double(entry.dailyGoal)
-                    )
-                    .tint(remainingCalories >= 0 ? .green : .red)
-                    .scaleEffect(y: 0.7)
-                }
-
-                // Planned progress bar
-                HStack {
-                    Text("Planned")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .frame(width: 50, alignment: .leading)
-                    ProgressView(
-                        value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
-                        total: Double(entry.dailyGoal)
-                    )
-                    .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
-                    .scaleEffect(y: 0.7)
-                }
-            }
-
-            // Food items grid
+            // Food items grid with adaptive sizing
             if entry.foodItems.isEmpty {
                 VStack {
                     Image(systemName: "fork.knife")
@@ -525,33 +603,10 @@ struct LargeWidgetView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                let itemSize = LargeWidgetSizing.forItemCount(entry.foodItems.count)
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 6) {
-                    ForEach(Array(entry.foodItems.prefix(8).enumerated()), id: \.offset) {
-                        index, item in
-                        HStack {
-                            Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
-                                Image(systemName: item.2.systemImage)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(
-                                        item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
-                            }
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(item.1)
-                                    .font(.system(size: 13))
-                                    .lineLimit(2)
-                                    .minimumScaleFactor(0.8)
-
-                                Text("\(item.3) kcal")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(6)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(6)
+                    ForEach(Array(entry.foodItems.prefix(8).enumerated()), id: \.offset) { index, item in
+                        LargeWidgetFoodItemView(item: item, itemSize: itemSize)
                     }
                 }
             }
