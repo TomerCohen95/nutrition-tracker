@@ -369,7 +369,9 @@ struct MediumWidgetView: View {
                 .frame(maxHeight: .infinity, alignment: .top)
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
     }
 }
 
@@ -556,7 +558,9 @@ struct LargeWidgetView: View {
 
             Spacer()
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
     }
 }
 
