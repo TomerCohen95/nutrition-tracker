@@ -6,6 +6,7 @@
 //
 
 import AppIntents
+import Foundation
 import SwiftData
 import SwiftUI
 import WidgetKit
@@ -29,11 +30,12 @@ struct Provider: TimelineProvider {
         SimpleEntry(
             date: Date(),
             caloriesEaten: 1234,
-            dailyGoal: 2500,
+            caloriesPlanned: 1584,
+            dailyGoal: 2000,
             foodItems: [
-                (UUID().uuidString, "Apple", .eaten, 95),
-                (UUID().uuidString, "Sandwich", .planned, 350),
-                (UUID().uuidString, "Salad", .eaten, 150),
+                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95),
+                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350),
+                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150),
             ],
             allItems: []
         )
@@ -43,11 +45,12 @@ struct Provider: TimelineProvider {
         let entry = SimpleEntry(
             date: Date(),
             caloriesEaten: 1234,
-            dailyGoal: 2500,
+            caloriesPlanned: 1584,
+            dailyGoal: 2000,
             foodItems: [
-                (UUID().uuidString, "Apple", .eaten, 95),
-                (UUID().uuidString, "Sandwich", .planned, 350),
-                (UUID().uuidString, "Salad", .eaten, 150),
+                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95),
+                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350),
+                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150),
             ],
             allItems: []
         )
@@ -96,7 +99,12 @@ struct Provider: TimelineProvider {
             // Calculate calories eaten
             let caloriesEaten =
                 todaysItems
-                .filter { $0.status == .eaten }
+                .filter { $0.status == FoodItem.FoodStatus.eaten }
+                .reduce(0) { $0 + $1.calories }
+
+            // Calculate planned calories (including both eaten and planned items)
+            let caloriesPlanned =
+                todaysItems
                 .reduce(0) { $0 + $1.calories }
 
             // Fetch current calorie goal
@@ -114,6 +122,7 @@ struct Provider: TimelineProvider {
             return SimpleEntry(
                 date: date,
                 caloriesEaten: caloriesEaten,
+                caloriesPlanned: caloriesPlanned,
                 dailyGoal: currentGoal,
                 foodItems: displayItems,
                 allItems: todaysItems
@@ -125,7 +134,8 @@ struct Provider: TimelineProvider {
             return SimpleEntry(
                 date: date,
                 caloriesEaten: 0,
-                dailyGoal: 2500,
+                caloriesPlanned: 0,
+                dailyGoal: 2000,
                 foodItems: [],
                 allItems: []
             )
@@ -136,6 +146,7 @@ struct Provider: TimelineProvider {
 struct SimpleEntry: TimelineEntry {
     let date: Date
     let caloriesEaten: Int
+    let caloriesPlanned: Int
     let dailyGoal: Int
     let foodItems: [(String, String, FoodItem.FoodStatus, Int)]  // ID, Name, Status, Calories
     let allItems: [FoodItem]
@@ -224,6 +235,10 @@ struct MediumWidgetView: View {
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
+    
+    private var remainingPlannedCalories: Int {
+        entry.dailyGoal - entry.caloriesPlanned
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -236,11 +251,41 @@ struct MediumWidgetView: View {
                     .fontWeight(.medium)
                 Spacer()
 
-                VStack(alignment: .trailing) {
-                    Text("\(entry.caloriesEaten) / \(entry.dailyGoal)")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Eaten progress
+                    HStack(spacing: 4) {
+                        Text("Eaten:")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(entry.caloriesEaten) / \(entry.dailyGoal)")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    
+                    // Planned progress
+                    HStack(spacing: 4) {
+                        Text("Planned:")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(entry.caloriesPlanned) / \(entry.dailyGoal)")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                }
+            }
 
+            // Dual progress bars
+            VStack(spacing: 4) {
+                // Eaten progress bar
+                HStack {
+                    Text("Eaten")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    ProgressView(
+                        value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
+                        total: Double(entry.dailyGoal)
+                    )
+                    .tint(remainingCalories >= 0 ? .green : .red)
                     if remainingCalories >= 0 {
                         Text("\(remainingCalories) left")
                             .font(.caption2)
@@ -251,14 +296,28 @@ struct MediumWidgetView: View {
                             .foregroundColor(.red)
                     }
                 }
+                
+                // Planned progress bar
+                HStack {
+                    Text("Planned")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    ProgressView(
+                        value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
+                        total: Double(entry.dailyGoal)
+                    )
+                    .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
+                    if remainingPlannedCalories >= 0 {
+                        Text("\(remainingPlannedCalories) left")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                    } else {
+                        Text("\(abs(remainingPlannedCalories)) over")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
             }
-
-            // Progress bar
-            ProgressView(
-                value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
-                total: Double(entry.dailyGoal)
-            )
-            .tint(remainingCalories >= 0 ? .green : .red)
 
             // Food items
             if entry.foodItems.isEmpty {
@@ -274,7 +333,7 @@ struct MediumWidgetView: View {
                             Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
                                 Image(systemName: item.2.systemImage)
                                     .font(.caption)
-                                    .foregroundColor(item.2 == .eaten ? .green : .gray)
+                                    .foregroundColor(item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
                             }
 
                             Text(item.1)
@@ -302,12 +361,13 @@ struct MediumWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
+        date: Date.now,
         caloriesEaten: 1234,
-        dailyGoal: 2500,
+        caloriesPlanned: 1584,
+        dailyGoal: 2000,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .planned, 350),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
         ],
         allItems: []
     )
@@ -317,14 +377,15 @@ struct MediumWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
-        caloriesEaten: 1800,
-        dailyGoal: 2500,
+        date: Date.now,
+        caloriesEaten: 1245,
+        caloriesPlanned: 1945,
+        dailyGoal: 2000,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .planned, 350),
-            ("3", "Salad", .eaten, 120),
-            ("4", "Yogurt", .eaten, 150),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
         ],
         allItems: []
     )
@@ -335,6 +396,10 @@ struct LargeWidgetView: View {
 
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
+    }
+    
+    private var remainingPlannedCalories: Int {
+        entry.dailyGoal - entry.caloriesPlanned
     }
 
     var body: some View {
@@ -360,26 +425,73 @@ struct LargeWidgetView: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing) {
-                    if remainingCalories >= 0 {
-                        Text("\(remainingCalories) left")
-                            .font(.subheadline)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    } else {
-                        Text("\(abs(remainingCalories)) over")
-                            .font(.subheadline)
-                            .foregroundColor(.red)
-                            .fontWeight(.medium)
+                VStack(alignment: .trailing, spacing: 8) {
+                    // Eaten stats
+                    VStack(alignment: .trailing) {
+                        if remainingCalories >= 0 {
+                            Text("\(remainingCalories) left")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .fontWeight(.medium)
+                        } else {
+                            Text("\(abs(remainingCalories)) over")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Text("eaten")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
-
-                    // Progress bar
+                    
+                    // Planned stats
+                    VStack(alignment: .trailing) {
+                        if remainingPlannedCalories >= 0 {
+                            Text("\(remainingPlannedCalories) left")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .fontWeight(.medium)
+                        } else {
+                            Text("\(abs(remainingPlannedCalories)) over")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Text("planned")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            // Dual progress bars
+            VStack(spacing: 4) {
+                // Eaten progress bar
+                HStack {
+                    Text("Eaten")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .leading)
                     ProgressView(
                         value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
                         total: Double(entry.dailyGoal)
                     )
                     .tint(remainingCalories >= 0 ? .green : .red)
-                    .frame(width: 100)
+                }
+                
+                // Planned progress bar
+                HStack {
+                    Text("Planned")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .leading)
+                    ProgressView(
+                        value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
+                        total: Double(entry.dailyGoal)
+                    )
+                    .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
                 }
             }
 
@@ -402,7 +514,7 @@ struct LargeWidgetView: View {
                             Button(intent: ToggleFoodStatusIntent(foodItemId: item.0)) {
                                 Image(systemName: item.2.systemImage)
                                     .font(.body)
-                                    .foregroundColor(item.2 == .eaten ? .green : .gray)
+                                    .foregroundColor(item.2 == FoodItem.FoodStatus.eaten ? .green : .gray)
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
@@ -437,13 +549,17 @@ struct ExtraLargeWidgetView: View {
     private var remainingCalories: Int {
         entry.dailyGoal - entry.caloriesEaten
     }
+    
+    private var remainingPlannedCalories: Int {
+        entry.dailyGoal - entry.caloriesPlanned
+    }
 
     private var eatenItems: [(String, String, FoodItem.FoodStatus, Int)] {
-        entry.foodItems.filter { $0.2 == .eaten }
+        entry.foodItems.filter { $0.2 == FoodItem.FoodStatus.eaten }
     }
 
     private var plannedItems: [(String, String, FoodItem.FoodStatus, Int)] {
-        entry.foodItems.filter { $0.2 == .planned }
+        entry.foodItems.filter { $0.2 == FoodItem.FoodStatus.planned }
     }
 
     var body: some View {
@@ -455,35 +571,60 @@ struct ExtraLargeWidgetView: View {
                         .font(.title2)
                         .fontWeight(.bold)
 
+                    // Eaten calories
                     HStack(alignment: .bottom, spacing: 6) {
                         Text("\(entry.caloriesEaten)")
                             .font(.system(size: 36, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.green)
 
-                        Text("/ \(entry.dailyGoal) kcal")
+                        Text("/ \(entry.dailyGoal) kcal eaten")
                             .font(.title3)
                             .foregroundColor(.secondary)
                     }
 
-                    // Progress bar
-                    ProgressView(
-                        value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
-                        total: Double(entry.dailyGoal)
-                    )
-                    .tint(remainingCalories >= 0 ? .green : .red)
-                    .scaleEffect(y: 2)
+                    // Progress bars
+                    VStack(spacing: 4) {
+                        // Eaten progress bar
+                        HStack {
+                            Text("Eaten")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .frame(width: 50, alignment: .leading)
+                            ProgressView(
+                                value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
+                                total: Double(entry.dailyGoal)
+                            )
+                            .tint(remainingCalories >= 0 ? .green : .red)
+                            .scaleEffect(y: 1.5)
+                        }
+                        
+                        // Planned progress bar
+                        HStack {
+                            Text("Planned")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .frame(width: 50, alignment: .leading)
+                            ProgressView(
+                                value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
+                                total: Double(entry.dailyGoal)
+                            )
+                            .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
+                            .scaleEffect(y: 1.5)
+                        }
+                    }
                 }
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 12) {
+                    // Eaten stats
                     VStack(alignment: .trailing) {
                         if remainingCalories >= 0 {
                             Text("\(remainingCalories)")
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(.green)
-                            Text("calories left")
+                            Text("calories left to eat")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         } else {
@@ -491,17 +632,28 @@ struct ExtraLargeWidgetView: View {
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .foregroundColor(.red)
-                            Text("calories over")
+                            Text("calories over eaten")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
+                    }
+                    
+                    // Planned stats
+                    VStack(alignment: .trailing) {
+                        Text("\(entry.caloriesPlanned)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                        Text("total planned calories")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     VStack(alignment: .trailing) {
                         Text("\(eatenItems.count)/\(entry.foodItems.count)")
                             .font(.title3)
                             .fontWeight(.semibold)
-                        Text("items eaten")
+                        Text("items completed")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -518,6 +670,10 @@ struct ExtraLargeWidgetView: View {
                         Text("Eaten (\(eatenItems.count))")
                             .font(.headline)
                             .fontWeight(.semibold)
+                        Spacer()
+                        Text("\(eatenItems.reduce(0) { $0 + $1.3 }) kcal")
+                            .font(.caption)
+                            .foregroundColor(.green)
                     }
 
                     if eatenItems.isEmpty {
@@ -562,6 +718,10 @@ struct ExtraLargeWidgetView: View {
                         Text("Planned (\(plannedItems.count))")
                             .font(.headline)
                             .fontWeight(.semibold)
+                        Spacer()
+                        Text("\(plannedItems.reduce(0) { $0 + $1.3 }) kcal")
+                            .font(.caption)
+                            .foregroundColor(.blue)
                     }
 
                     if plannedItems.isEmpty {
@@ -607,12 +767,13 @@ struct ExtraLargeWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
+        date: Date.now,
         caloriesEaten: 1234,
-        dailyGoal: 2500,
+        caloriesPlanned: 1584,
+        dailyGoal: 2000,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .planned, 350),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
         ],
         allItems: []
     )
@@ -622,14 +783,15 @@ struct ExtraLargeWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
-        caloriesEaten: 1800,
-        dailyGoal: 2500,
+        date: Date.now,
+        caloriesEaten: 1245,
+        caloriesPlanned: 1945,
+        dailyGoal: 2000,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .planned, 350),
-            ("3", "Salad", .eaten, 120),
-            ("4", "Yogurt", .eaten, 150),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
         ],
         allItems: []
     )
@@ -639,18 +801,19 @@ struct ExtraLargeWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
+        date: Date.now,
         caloriesEaten: 1400,
-        dailyGoal: 2500,
+        caloriesPlanned: 2060,
+        dailyGoal: 2000,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .planned, 350),
-            ("3", "Salad", .eaten, 120),
-            ("4", "Yogurt", .eaten, 150),
-            ("5", "Chicken Breast", .planned, 200),
-            ("6", "Rice", .planned, 150),
-            ("7", "Broccoli", .eaten, 30),
-            ("8", "Almonds", .planned, 160),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
+            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200),
+            ("6", "Rice", FoodItem.FoodStatus.planned, 150),
+            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30),
+            ("8", "Almonds", FoodItem.FoodStatus.planned, 160),
         ],
         allItems: []
     )
@@ -660,20 +823,21 @@ struct ExtraLargeWidgetView: View {
     NutritionWidget()
 } timeline: {
     SimpleEntry(
-        date: .now,
+        date: Date.now,
         caloriesEaten: 1600,
+        caloriesPlanned: 2375,
         dailyGoal: 2200,
         foodItems: [
-            ("1", "Apple", .eaten, 95),
-            ("2", "Sandwich", .eaten, 350),
-            ("3", "Salad", .eaten, 120),
-            ("4", "Yogurt", .eaten, 150),
-            ("5", "Chicken Breast", .planned, 200),
-            ("6", "Rice", .planned, 150),
-            ("7", "Broccoli", .eaten, 30),
-            ("8", "Almonds", .planned, 160),
-            ("9", "Banana", .planned, 100),
-            ("10", "Greek Yogurt", .planned, 120),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
+            ("2", "Sandwich", FoodItem.FoodStatus.eaten, 350),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
+            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200),
+            ("6", "Rice", FoodItem.FoodStatus.planned, 150),
+            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30),
+            ("8", "Almonds", FoodItem.FoodStatus.planned, 160),
+            ("9", "Banana", FoodItem.FoodStatus.planned, 100),
+            ("10", "Greek Yogurt", FoodItem.FoodStatus.planned, 120),
         ],
         allItems: []
     )

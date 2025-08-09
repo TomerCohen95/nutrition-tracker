@@ -45,9 +45,20 @@ struct OptimizedDayView: View {
             .reduce(0) { $0 + $1.calories }
     }
     
+    // Calculate planned calories (including both eaten and planned items)
+    private var caloriesPlanned: Int {
+        dayItems
+            .reduce(0) { $0 + $1.calories }
+    }
+    
     // Calculate remaining calories for this date
     private var remainingCalories: Int {
         dailyGoal - caloriesEaten
+    }
+    
+    // Calculate remaining planned calories
+    private var remainingPlannedCalories: Int {
+        dailyGoal - caloriesPlanned
     }
     
     // Check if this is today
@@ -92,9 +103,10 @@ struct OptimizedDayView: View {
         VStack(spacing: 0) {
             // Fixed Progress Section (stays at top)
             VStack(spacing: AppTheme.paddingM) {
+                // Eaten calories section
                 HStack {
                     VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
-                        Text("Progress")
+                        Text("Eaten")
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
                         
@@ -131,12 +143,60 @@ struct OptimizedDayView: View {
                     }
                 }
                 
-                // Progress Bar
+                // Eaten Progress Bar
                 ProgressView(
                     value: min(Double(caloriesEaten), Double(dailyGoal)),
                     total: Double(dailyGoal)
                 )
                 .tint(remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange)
+                .scaleEffect(y: 2)
+                
+                // Planned calories section
+                HStack {
+                    VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                        Text("Planned")
+                            .font(AppTheme.headlineFont)
+                            .foregroundColor(AppTheme.textPrimary)
+                        
+                        HStack(alignment: .bottom, spacing: AppTheme.paddingXS) {
+                            Text("\(caloriesPlanned)")
+                                .font(AppTheme.titleFont)
+                                .foregroundColor(.blue)
+                            
+                            Text("/ \(dailyGoal) kcal")
+                                .font(AppTheme.bodyFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                                .offset(y: -2)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: AppTheme.paddingXS) {
+                        if remainingPlannedCalories >= 0 {
+                            Text("Remaining")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                            Text("\(remainingPlannedCalories) kcal")
+                                .font(AppTheme.headlineFont)
+                                .foregroundColor(.blue)
+                        } else {
+                            Text("Over by")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                            Text("\(abs(remainingPlannedCalories)) kcal")
+                                .font(AppTheme.headlineFont)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
+                
+                // Planned Progress Bar
+                ProgressView(
+                    value: min(Double(caloriesPlanned), Double(dailyGoal)),
+                    total: Double(dailyGoal)
+                )
+                .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
                 .scaleEffect(y: 2)
             }
             .padding(AppTheme.paddingL)

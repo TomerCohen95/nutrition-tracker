@@ -83,6 +83,11 @@ struct WeeklyPlannerView: View {
             .filter { $0.status == .eaten }
             .reduce(0) { $0 + $1.calories }
     }
+    
+    private var caloriesPlanned: Int {
+        selectedDayItems
+            .reduce(0) { $0 + $1.calories }
+    }
 
     private var dailyGoal: Int {
         CalorieGoal.currentGoal(for: selectedDate, from: calorieGoals)
@@ -90,6 +95,10 @@ struct WeeklyPlannerView: View {
 
     private var remainingCalories: Int {
         dailyGoal - caloriesEaten
+    }
+    
+    private var remainingPlannedCalories: Int {
+        dailyGoal - caloriesPlanned
     }
 
     var body: some View {
@@ -260,13 +269,10 @@ struct WeeklyPlannerView: View {
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
 
-                        HStack(alignment: .bottom, spacing: AppTheme.paddingXS) {
-                            Text("\(caloriesEaten)")
-                                .font(AppTheme.titleFont)
-                                .foregroundColor(AppTheme.primaryGreen)
-
-                            Text("/ \(dailyGoal) cal")
-                                .font(AppTheme.bodyFont)
+                        // More compact layout for calorie display
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Goal: \(dailyGoal) cal")
+                                .font(.system(size: 12))
                                 .foregroundColor(AppTheme.textSecondary)
                         }
                     }
@@ -308,10 +314,10 @@ struct WeeklyPlannerView: View {
 
                         VStack(alignment: .trailing, spacing: AppTheme.paddingXS) {
                             Text("Remaining")
-                                .font(AppTheme.captionFont)
+                                .font(.system(size: 12))
                                 .foregroundColor(AppTheme.textSecondary)
-                            Text("\(remainingCalories)")
-                                .font(AppTheme.headlineFont)
+                            Text("\(remainingCalories) cal")
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(
                                     remainingCalories >= 0
                                         ? AppTheme.primaryGreen : AppTheme.accentOrange)
@@ -319,8 +325,35 @@ struct WeeklyPlannerView: View {
                     }
                 }
 
-                ProgressView(value: Double(caloriesEaten), total: Double(dailyGoal))
-                    .tint(remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange)
+                // Eaten Progress Bar
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Eaten")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(AppTheme.primaryGreen)
+                        Spacer()
+                        Text("\(caloriesEaten) / \(dailyGoal)")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    ProgressView(value: Double(caloriesEaten), total: Double(dailyGoal))
+                        .tint(remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange)
+                }
+
+                // Planned Progress Bar
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Planned")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.blue)
+                        Spacer()
+                        Text("\(caloriesPlanned) / \(dailyGoal)")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    ProgressView(value: Double(caloriesPlanned), total: Double(dailyGoal))
+                        .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
+                }
             }
             .padding(AppTheme.paddingL)
             .cardStyle(backgroundColor: AppTheme.lightGreen)
