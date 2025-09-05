@@ -12,7 +12,9 @@ import SwiftUI
 struct NutritionWidgetBundle: WidgetBundle {
     var body: some Widget {
         NutritionWidget()
-        NutritionWidgetControl()
+        if #available(iOS 18.0, *) {
+            NutritionWidgetControl()
+        }
         NutritionWidgetLiveActivity()
     }
 }

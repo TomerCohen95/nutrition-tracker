@@ -1,0 +1,56 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with darker gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1B5E20;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0D3F14;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="appleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E53935;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B71C1C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bgGradient)"/>
+  
+  <!-- Apple shape in center -->
+  <g transform="translate(512, 400)">
+    <!-- Apple body -->
+    <path d="M-120,-80 C-120,-140 -80,-180 0,-180 C80,-180 120,-140 120,-80 
+             C120,60 80,120 0,140 C-80,120 -120,60 -120,-80 Z" 
+          fill="url(#appleGradient)" stroke="#E0E0E0" stroke-width="8"/>
+    
+    <!-- Apple leaf -->
+    <path d="M20,-170 C40,-190 70,-180 80,-160 C70,-150 50,-155 35,-160 Z" 
+          fill="#388E3C" stroke="#E0E0E0" stroke-width="4"/>
+    
+    <!-- Apple stem -->
+    <rect x="-5" y="-180" width="10" height="20" fill="#5D4037" stroke="#E0E0E0" stroke-width="2"/>
+  </g>
+  
+  <!-- Nutrition symbols around the apple -->
+  <!-- Calorie symbol (stylized C) -->
+  <circle cx="300" cy="250" r="40" fill="none" stroke="#E0E0E0" stroke-width="12" opacity="0.9"/>
+  <text x="300" y="265" text-anchor="middle" fill="#E0E0E0" font-family="Arial, sans-serif" font-size="32" font-weight="bold">C</text>
+  
+  <!-- Plus symbol -->
+  <g transform="translate(724, 250)" opacity="0.9">
+    <rect x="-25" y="-5" width="50" height="10" fill="#E0E0E0"/>
+    <rect x="-5" y="-25" width="10" height="50" fill="#E0E0E0"/>
+  </g>
+  
+  <!-- Heart symbol -->
+  <g transform="translate(300, 750)" opacity="0.9">
+    <path d="M0,-15 C-20,-35 -50,-35 -50,-5 C-50,15 0,45 0,45 C0,45 50,15 50,-5 C50,-35 20,-35 0,-15 Z" 
+          fill="#E0E0E0"/>
+  </g>
+  
+  <!-- Chart bars -->
+  <g transform="translate(724, 750)" opacity="0.9">
+    <rect x="-30" y="-10" width="12" height="30" fill="#E0E0E0"/>
+    <rect x="-12" y="-20" width="12" height="40" fill="#E0E0E0"/>
+    <rect x="6" y="-15" width="12" height="35" fill="#E0E0E0"/>
+    <rect x="24" y="-25" width="12" height="45" fill="#E0E0E0"/>
+  </g>
+</svg>
