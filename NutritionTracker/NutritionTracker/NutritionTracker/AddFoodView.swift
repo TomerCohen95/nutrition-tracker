@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import WidgetKit
+import Foundation
 
 struct AddFoodView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,6 +17,7 @@ struct AddFoodView: View {
     
     @Query(sort: \FoodHistory.lastUsed, order: .reverse) private var foodHistory: [FoodHistory]
     @State private var historyRefreshTrigger = false
+    @State private var debugMessage = ""
     
     let targetDate: Date
     
@@ -101,6 +103,20 @@ struct AddFoodView: View {
                             .background(AppTheme.secondaryBackground)
                             .cornerRadius(AppTheme.radiusS)
                         }
+                        
+                        // Debug section (can be removed in production)
+                        if !debugMessage.isEmpty {
+                            Text("Debug: \(debugMessage)")
+                                .font(AppTheme.smallFont)
+                                .foregroundColor(.orange)
+                                .padding(.top, AppTheme.paddingXS)
+                        }
+                        
+                        // History stats for debugging
+                        Text("History count: \(foodHistory.count)")
+                            .font(AppTheme.smallFont)
+                            .foregroundColor(AppTheme.textSecondary)
+                            .padding(.top, AppTheme.paddingXS)
                     }
                     .padding(.horizontal, AppTheme.paddingM)
                     
@@ -170,10 +186,24 @@ struct AddFoodView: View {
             } message: {
                 Text(alertMessage)
             }
+            .onAppear {
+                print("📱 AddFoodView appeared - History count: \(foodHistory.count)")
+                if foodHistory.count == 0 {
+                    debugMessage = "No history found on view appear"
+                }
+            }
+            .onChange(of: foodHistory.count) { oldCount, newCount in
+                print("📊 History count changed: \(oldCount) → \(newCount)")
+                if newCount == 0 && oldCount > 0 {
+                    debugMessage = "History became empty! Was \(oldCount)"
+                }
+            }
         }
     }
     
     private func addFoodItem() {
+        print("🍎 Adding food item: \(foodName) - \(calories) kcal")
+        
         // Validate input
         guard !foodName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             alertMessage = "Please enter a food name"
@@ -187,9 +217,11 @@ struct AddFoodView: View {
             return
         }
         
+        let trimmedName = foodName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
         // Create and save food item with target date
         let foodItem = FoodItem(
-            name: foodName.trimmingCharacters(in: .whitespacesAndNewlines),
+            name: trimmedName,
             calories: calorieValue
         )
         
@@ -200,17 +232,20 @@ struct AddFoodView: View {
         
         do {
             try modelContext.save()
+            print("✅ Food item saved successfully")
             
             // Add to food history (prevent duplicates)
-            saveToHistory(name: foodName.trimmingCharacters(in: .whitespacesAndNewlines), calories: calorieValue)
+            saveToHistory(name: trimmedName, calories: calorieValue)
             
             // Force widget refresh immediately after saving
             WidgetCenter.shared.reloadAllTimelines()
             
             dismiss()
         } catch {
+            print("❌ Failed to save food item: \(error)")
             alertMessage = "Failed to save food item: \(error.localizedDescription)"
             showingAlert = true
+            debugMessage = "Save failed: \(error.localizedDescription)"
         }
     }
     
@@ -225,38 +260,84 @@ struct AddFoodView: View {
         
         do {
             try modelContext.save()
+            print("✅ History usage updated for: \(historyItem.name)")
         } catch {
-            print("Error updating history usage: \(error)")
+            print("❌ Error updating history usage: \(error)")
+            debugMessage = "Failed to update usage stats"
         }
     }
     
     private func saveToHistory(name: String, calories: Int) {
+        print("📝 Saving to history: \(name) - \(calories) kcal")
+        
         // Check if already exists in history
         let existingItem = foodHistory.first { $0.matches(name: name, calories: calories) }
         
         if let existing = existingItem {
             // Update existing item
+            print("🔄 Updating existing history item")
             existing.markAsUsed()
         } else {
             // Create new history item
+            print("➕ Creating new history item")
             let newHistoryItem = FoodHistory(name: name, calories: calories)
             modelContext.insert(newHistoryItem)
             
-            // Limit history to 30 items
-            if foodHistory.count >= 30 {
-                let oldestItems = foodHistory.sorted { $0.lastUsed < $1.lastUsed }
-                for i in 0..<(foodHistory.count - 29) {
-                    modelContext.delete(oldestItems[i])
-                }
-            }
+            // Safer history cleanup - limit to 30 items with better bounds checking
+            cleanupOldHistory()
         }
         
         do {
             try modelContext.save()
+            print("✅ History saved successfully. Current count: \(foodHistory.count)")
+            
             // Trigger view refresh
             historyRefreshTrigger.toggle()
+            
+            // Verify the save worked
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("🔍 Post-save verification: \(foodHistory.count) items in history")
+            }
         } catch {
-            print("Error saving to history: \(error)")
+            print("❌ Error saving to history: \(error)")
+            debugMessage = "Failed to save food to history"
+        }
+    }
+    
+    private func cleanupOldHistory() {
+        let maxHistoryItems = 30
+        
+        // Only cleanup if we actually exceed the limit
+        guard foodHistory.count >= maxHistoryItems else {
+            print("📊 History count (\(foodHistory.count)) below limit, no cleanup needed")
+            return
+        }
+        
+        print("🧹 Cleaning up old history items. Current count: \(foodHistory.count)")
+        
+        // Sort by lastUsed date (oldest first)
+        let sortedHistory = foodHistory.sorted { $0.lastUsed < $1.lastUsed }
+        
+        // Calculate how many items to remove
+        let itemsToRemove = foodHistory.count - maxHistoryItems + 1 // +1 for the new item being added
+        
+        // Safety check - never remove more than half the items
+        let safeRemovalCount = min(itemsToRemove, foodHistory.count / 2)
+        
+        guard safeRemovalCount > 0 else {
+            print("⚠️ Safe removal count is 0, skipping cleanup")
+            return
+        }
+        
+        print("🗑️ Removing \(safeRemovalCount) oldest items")
+        
+        // Remove the oldest items
+        for i in 0..<safeRemovalCount {
+            if i < sortedHistory.count {
+                let itemToDelete = sortedHistory[i]
+                print("🗑️ Deleting: \(itemToDelete.name) (last used: \(itemToDelete.lastUsed))")
+                modelContext.delete(itemToDelete)
+            }
         }
     }
 }
