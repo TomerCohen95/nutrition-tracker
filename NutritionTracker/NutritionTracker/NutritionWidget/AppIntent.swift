@@ -36,7 +36,7 @@ struct ToggleFoodStatusIntent: AppIntent {
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
-            groupContainer: .identifier("group.tomercode.nutritiontracker")
+            groupContainer: .identifier("group.com.OneFifty.Aoo")
         )
 
         do {

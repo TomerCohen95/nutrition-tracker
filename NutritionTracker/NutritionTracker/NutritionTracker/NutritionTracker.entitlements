@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.tomercode.nutritiontracker</string>
+		<string>group.com.OneFifty.Aoo</string>
 	</array>
 </dict>
 </plist>

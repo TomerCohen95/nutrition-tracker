@@ -11,7 +11,7 @@ import SwiftData
 @main
 struct NutritionTrackerApp: App {
     // App Group identifier for sharing data with widget
-    static let appGroupID = "group.tomercode.nutritiontracker"
+    static let appGroupID = "group.com.OneFifty.Aoo"
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -30,7 +30,7 @@ struct NutritionTrackerApp: App {
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true,
-            groupContainer: .identifier("group.tomercode.nutritiontracker")
+            groupContainer: .identifier("group.com.OneFifty.Aoo")
         )
 
         do {
