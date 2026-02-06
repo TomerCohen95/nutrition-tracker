@@ -70,7 +70,8 @@ struct Provider: TimelineProvider {
 
     private func fetchCurrentData(for date: Date) -> SimpleEntry {
         // Create model container with App Group
-        let schema = Schema([FoodItem.self, FoodHistory.self, CalorieGoal.self])
+        // Note: FoodHistory is now stored in UserDefaults via FoodHistoryManager
+        let schema = Schema([FoodItem.self, CalorieGoal.self])
         let modelConfiguration = ModelConfiguration(
             "NutritionTracker",
             schema: schema,

@@ -15,9 +15,8 @@ struct AddFoodView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
     
-    @Query(sort: \FoodHistory.lastUsed, order: .reverse) private var foodHistory: [FoodHistory]
-    @State private var historyRefreshTrigger = false
-    @State private var debugMessage = ""
+    // Use the new FoodHistoryManager instead of SwiftData @Query
+    @ObservedObject private var historyManager = FoodHistoryManager.shared
     
     let targetDate: Date
     
@@ -25,6 +24,9 @@ struct AddFoodView: View {
     @State private var calories = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
+    @State private var searchResults: [FoodHistoryItem] = []
+    @State private var showSearchDropdown = false
+    @FocusState private var isNameFieldFocused: Bool
     
     init(targetDate: Date = Date()) {
         self.targetDate = targetDate
@@ -43,17 +45,17 @@ struct AddFoodView: View {
                             
                             Spacer()
                             
-                            if !foodHistory.isEmpty {
+                            if !historyManager.history.isEmpty {
                                 Text("Tap to use")
                                     .font(AppTheme.smallFont)
                                     .foregroundColor(AppTheme.textSecondary)
                             }
                         }
                         
-                        if !foodHistory.isEmpty {
+                        if !historyManager.history.isEmpty {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: AppTheme.paddingM) {
-                                    ForEach(Array(foodHistory.prefix(10)), id: \.name) { historyItem in
+                                    ForEach(Array(historyManager.getMostRecent(limit: 10)), id: \.id) { historyItem in
                                         Button(action: {
                                             selectFromHistory(historyItem)
                                         }) {
@@ -104,16 +106,8 @@ struct AddFoodView: View {
                             .cornerRadius(AppTheme.radiusS)
                         }
                         
-                        // Debug section (can be removed in production)
-                        if !debugMessage.isEmpty {
-                            Text("Debug: \(debugMessage)")
-                                .font(AppTheme.smallFont)
-                                .foregroundColor(.orange)
-                                .padding(.top, AppTheme.paddingXS)
-                        }
-                        
-                        // History stats for debugging
-                        Text("History count: \(foodHistory.count)")
+                        // History count indicator
+                        Text("History: \(historyManager.history.count) items")
                             .font(AppTheme.smallFont)
                             .foregroundColor(AppTheme.textSecondary)
                             .padding(.top, AppTheme.paddingXS)
@@ -129,16 +123,59 @@ struct AddFoodView: View {
                                 .foregroundColor(AppTheme.textPrimary)
                             
                             VStack(spacing: AppTheme.paddingM) {
+                                // Food Name with Search Dropdown
                                 VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
                                     Text("Food Name")
                                         .font(AppTheme.captionFont)
                                         .foregroundColor(AppTheme.textSecondary)
                                     
-                                    TextField("Enter food name", text: $foodName)
-                                        .font(AppTheme.bodyFont)
-                                        .padding(AppTheme.paddingM)
-                                        .background(AppTheme.secondaryBackground)
-                                        .cornerRadius(AppTheme.radiusS)
+                                    ZStack(alignment: .top) {
+                                        VStack(spacing: 0) {
+                                            TextField("Enter food name", text: $foodName)
+                                                .font(AppTheme.bodyFont)
+                                                .padding(AppTheme.paddingM)
+                                                .background(AppTheme.secondaryBackground)
+                                                .cornerRadius(AppTheme.radiusS)
+                                                .focused($isNameFieldFocused)
+                                                .onChange(of: foodName) { _, newValue in
+                                                    performSearch(query: newValue)
+                                                }
+                                            
+                                            // Search Results Dropdown
+                                            if showSearchDropdown && !searchResults.isEmpty {
+                                                VStack(spacing: 0) {
+                                                    ForEach(searchResults, id: \.id) { item in
+                                                        Button(action: {
+                                                            selectSearchResult(item)
+                                                        }) {
+                                                            HStack {
+                                                                Text(item.name)
+                                                                    .font(AppTheme.bodyFont)
+                                                                    .foregroundColor(AppTheme.textPrimary)
+                                                                Spacer()
+                                                                Text("\(item.calories) kcal")
+                                                                    .font(AppTheme.captionFont)
+                                                                    .foregroundColor(AppTheme.primaryGreen)
+                                                                    .fontWeight(.medium)
+                                                            }
+                                                            .padding(.horizontal, AppTheme.paddingM)
+                                                            .padding(.vertical, AppTheme.paddingS)
+                                                            .background(AppTheme.cardBackground)
+                                                        }
+                                                        .buttonStyle(PlainButtonStyle())
+                                                        
+                                                        if item.id != searchResults.last?.id {
+                                                            Divider()
+                                                                .background(AppTheme.textSecondary.opacity(0.2))
+                                                        }
+                                                    }
+                                                }
+                                                .background(AppTheme.cardBackground)
+                                                .cornerRadius(AppTheme.radiusS)
+                                                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                            }
+                                        }
+                                    }
                                 }
                                 
                                 VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
@@ -187,16 +224,9 @@ struct AddFoodView: View {
                 Text(alertMessage)
             }
             .onAppear {
-                print("📱 AddFoodView appeared - History count: \(foodHistory.count)")
-                if foodHistory.count == 0 {
-                    debugMessage = "No history found on view appear"
-                }
-            }
-            .onChange(of: foodHistory.count) { oldCount, newCount in
-                print("📊 History count changed: \(oldCount) → \(newCount)")
-                if newCount == 0 && oldCount > 0 {
-                    debugMessage = "History became empty! Was \(oldCount)"
-                }
+                print("📱 AddFoodView appeared - History count: \(historyManager.history.count)")
+                // Refresh history when view appears
+                historyManager.loadHistory()
             }
         }
     }
@@ -234,8 +264,8 @@ struct AddFoodView: View {
             try modelContext.save()
             print("✅ Food item saved successfully")
             
-            // Add to food history (prevent duplicates)
-            saveToHistory(name: trimmedName, calories: calorieValue)
+            // Add to food history using the new manager
+            historyManager.addOrUpdate(name: trimmedName, calories: calorieValue)
             
             // Force widget refresh immediately after saving
             WidgetCenter.shared.reloadAllTimelines()
@@ -245,104 +275,47 @@ struct AddFoodView: View {
             print("❌ Failed to save food item: \(error)")
             alertMessage = "Failed to save food item: \(error.localizedDescription)"
             showingAlert = true
-            debugMessage = "Save failed: \(error.localizedDescription)"
         }
     }
     
     // MARK: - History Functions
     
-    private func selectFromHistory(_ historyItem: FoodHistory) {
+    private func selectFromHistory(_ historyItem: FoodHistoryItem) {
         foodName = historyItem.name
         calories = String(historyItem.calories)
+        showSearchDropdown = false
         
         // Update usage count and last used date
-        historyItem.markAsUsed()
-        
-        do {
-            try modelContext.save()
-            print("✅ History usage updated for: \(historyItem.name)")
-        } catch {
-            print("❌ Error updating history usage: \(error)")
-            debugMessage = "Failed to update usage stats"
-        }
+        historyManager.markAsUsed(historyItem)
+        print("✅ Selected from history: \(historyItem.name)")
     }
     
-    private func saveToHistory(name: String, calories: Int) {
-        print("📝 Saving to history: \(name) - \(calories) kcal")
-        
-        // Check if already exists in history
-        let existingItem = foodHistory.first { $0.matches(name: name, calories: calories) }
-        
-        if let existing = existingItem {
-            // Update existing item
-            print("🔄 Updating existing history item")
-            existing.markAsUsed()
+    // MARK: - Search Functions
+    
+    private func performSearch(query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            searchResults = []
+            showSearchDropdown = false
         } else {
-            // Create new history item
-            print("➕ Creating new history item")
-            let newHistoryItem = FoodHistory(name: name, calories: calories)
-            modelContext.insert(newHistoryItem)
-            
-            // Safer history cleanup - limit to 30 items with better bounds checking
-            cleanupOldHistory()
-        }
-        
-        do {
-            try modelContext.save()
-            print("✅ History saved successfully. Current count: \(foodHistory.count)")
-            
-            // Trigger view refresh
-            historyRefreshTrigger.toggle()
-            
-            // Verify the save worked
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("🔍 Post-save verification: \(foodHistory.count) items in history")
-            }
-        } catch {
-            print("❌ Error saving to history: \(error)")
-            debugMessage = "Failed to save food to history"
+            searchResults = historyManager.search(query: trimmed, limit: 5)
+            showSearchDropdown = !searchResults.isEmpty && isNameFieldFocused
         }
     }
     
-    private func cleanupOldHistory() {
-        let maxHistoryItems = 30
+    private func selectSearchResult(_ item: FoodHistoryItem) {
+        foodName = item.name
+        calories = String(item.calories)
+        showSearchDropdown = false
+        isNameFieldFocused = false
         
-        // Only cleanup if we actually exceed the limit
-        guard foodHistory.count >= maxHistoryItems else {
-            print("📊 History count (\(foodHistory.count)) below limit, no cleanup needed")
-            return
-        }
-        
-        print("🧹 Cleaning up old history items. Current count: \(foodHistory.count)")
-        
-        // Sort by lastUsed date (oldest first)
-        let sortedHistory = foodHistory.sorted { $0.lastUsed < $1.lastUsed }
-        
-        // Calculate how many items to remove
-        let itemsToRemove = foodHistory.count - maxHistoryItems + 1 // +1 for the new item being added
-        
-        // Safety check - never remove more than half the items
-        let safeRemovalCount = min(itemsToRemove, foodHistory.count / 2)
-        
-        guard safeRemovalCount > 0 else {
-            print("⚠️ Safe removal count is 0, skipping cleanup")
-            return
-        }
-        
-        print("🗑️ Removing \(safeRemovalCount) oldest items")
-        
-        // Remove the oldest items
-        for i in 0..<safeRemovalCount {
-            if i < sortedHistory.count {
-                let itemToDelete = sortedHistory[i]
-                print("🗑️ Deleting: \(itemToDelete.name) (last used: \(itemToDelete.lastUsed))")
-                modelContext.delete(itemToDelete)
-            }
-        }
+        // Update usage count and last used date
+        historyManager.markAsUsed(item)
+        print("✅ Selected from search: \(item.name)")
     }
 }
 
 #Preview {
     AddFoodView()
-        .modelContainer(for: [FoodItem.self, FoodHistory.self], inMemory: true)
+        .modelContainer(for: [FoodItem.self, CalorieGoal.self], inMemory: true)
 }

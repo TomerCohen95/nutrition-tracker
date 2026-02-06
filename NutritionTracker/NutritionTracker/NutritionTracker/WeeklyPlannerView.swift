@@ -965,5 +965,5 @@ struct CopyDayButton: View {
 
 #Preview {
     WeeklyPlannerView()
-        .modelContainer(for: [FoodItem.self, FoodHistory.self, CalorieGoal.self], inMemory: true)
+        .modelContainer(for: [FoodItem.self, CalorieGoal.self], inMemory: true)
 }
