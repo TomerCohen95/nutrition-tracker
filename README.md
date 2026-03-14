@@ -36,14 +36,83 @@ A minimalist nutrition tracking app built with **SwiftUI** and **WidgetKit**, fe
 ### Prerequisites
 - **macOS** (required for Xcode)
 - **Xcode** from Mac App Store (~15GB, free)
+- **Apple Developer Account** (free or paid) - required for device installation
 
-### Quick Start
-1. Follow the detailed setup guide in [`SETUP_GUIDE.md`](SETUP_GUIDE.md)
-2. Install Xcode from Mac App Store
-3. Create new iOS project and add widget extension
-4. Copy the provided Swift files
-5. Configure App Groups
-6. Build and run in iOS Simulator
+---
+
+## 📱 Install on Your iPhone (Quick Commands)
+
+### Step 1: List Connected Devices
+```bash
+xcrun xctrace list devices 2>&1 | grep -v Simulator
+```
+
+### Step 2: Build for Device
+```bash
+cd NutritionTracker/NutritionTracker
+xcodebuild -project NutritionTracker.xcodeproj \
+  -target NutritionTracker \
+  -sdk iphoneos \
+  -configuration Release \
+  build
+```
+
+### Step 3: Install on Device
+Replace `YOUR_DEVICE_ID` with your device ID from Step 1:
+```bash
+xcrun devicectl device install app \
+  --device YOUR_DEVICE_ID \
+  ./build/Release-iphoneos/NutritionTracker.app
+```
+
+### Step 4: Launch App
+```bash
+xcrun devicectl device process launch \
+  --device YOUR_DEVICE_ID \
+  TomerCode.NutritionTracker
+```
+
+### 🔧 Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| "Device is locked" | Unlock your iPhone and try again |
+| "Provisioning profile" error | Open project in Xcode, go to Signing & Capabilities, select your team |
+| "Device not found" | Reconnect USB cable, trust computer on iPhone |
+
+---
+
+## 💻 Install on Simulator (Alternative)
+
+### Build and Run
+```bash
+cd NutritionTracker/NutritionTracker
+
+# Build for simulator
+xcodebuild -project NutritionTracker.xcodeproj \
+  -target NutritionTracker \
+  -sdk iphonesimulator \
+  -configuration Debug \
+  build
+
+# Install
+xcrun simctl install "iPhone 16 Pro" \
+  ./build/Debug-iphonesimulator/NutritionTracker.app
+
+# Launch
+xcrun simctl launch "iPhone 16 Pro" TomerCode.NutritionTracker
+
+# Open Simulator app
+open -a Simulator
+```
+
+---
+
+## 📖 Detailed Setup Guide
+
+For step-by-step instructions with screenshots:
+1. [`SETUP_GUIDE.md`](SETUP_GUIDE.md) - Complete Xcode setup
+2. [`INSTALL_ON_REAL_IPHONE.md`](INSTALL_ON_REAL_IPHONE.md) - Device-specific guide
 
 ## 🎯 MVP Deliverables Completed
 
