@@ -22,6 +22,7 @@ struct AddFoodView: View {
     
     @State private var foodName = ""
     @State private var calories = ""
+    @State private var proteinGrams = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var searchResults: [FoodHistoryItem] = []
@@ -66,7 +67,7 @@ struct AddFoodView: View {
                                                     .lineLimit(2)
                                                     .multilineTextAlignment(.leading)
                                                 
-                                                Text("\(historyItem.calories) kcal")
+                                                Text("\(historyItem.calories) kcal • \(historyItem.proteinGrams)g")
                                                     .font(AppTheme.smallFont)
                                                     .foregroundColor(AppTheme.primaryGreen)
                                                     .fontWeight(.medium)
@@ -153,7 +154,7 @@ struct AddFoodView: View {
                                                                     .font(AppTheme.bodyFont)
                                                                     .foregroundColor(AppTheme.textPrimary)
                                                                 Spacer()
-                                                                Text("\(item.calories) kcal")
+                                                                Text("\(item.calories) kcal • \(item.proteinGrams)g")
                                                                     .font(AppTheme.captionFont)
                                                                     .foregroundColor(AppTheme.primaryGreen)
                                                                     .fontWeight(.medium)
@@ -190,6 +191,19 @@ struct AddFoodView: View {
                                         .background(AppTheme.secondaryBackground)
                                         .cornerRadius(AppTheme.radiusS)
                                 }
+
+                                VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                                    Text("Protein")
+                                        .font(AppTheme.captionFont)
+                                        .foregroundColor(AppTheme.textSecondary)
+
+                                    TextField("Enter protein in grams", text: $proteinGrams)
+                                        .font(AppTheme.bodyFont)
+                                        .keyboardType(.numberPad)
+                                        .padding(AppTheme.paddingM)
+                                        .background(AppTheme.secondaryBackground)
+                                        .cornerRadius(AppTheme.radiusS)
+                                }
                             }
                         }
                         .padding(AppTheme.paddingL)
@@ -200,8 +214,8 @@ struct AddFoodView: View {
                             addFoodItem()
                         }
                         .buttonStyle(PrimaryButtonStyle())
-                        .disabled(foodName.isEmpty || calories.isEmpty)
-                        .opacity(foodName.isEmpty || calories.isEmpty ? 0.6 : 1.0)
+                        .disabled(foodName.isEmpty || calories.isEmpty || proteinGrams.isEmpty)
+                        .opacity(foodName.isEmpty || calories.isEmpty || proteinGrams.isEmpty ? 0.6 : 1.0)
                     }
                     .padding(.horizontal, AppTheme.paddingM)
                 }
@@ -232,7 +246,7 @@ struct AddFoodView: View {
     }
     
     private func addFoodItem() {
-        print("🍎 Adding food item: \(foodName) - \(calories) kcal")
+        print("🍎 Adding food item: \(foodName) - \(calories) kcal - \(proteinGrams)g protein")
         
         // Validate input
         guard !foodName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -246,13 +260,20 @@ struct AddFoodView: View {
             showingAlert = true
             return
         }
+
+        guard let proteinValue = Int(proteinGrams), proteinValue >= 0 else {
+            alertMessage = "Please enter a valid number of protein grams"
+            showingAlert = true
+            return
+        }
         
         let trimmedName = foodName.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Create and save food item with target date
         let foodItem = FoodItem(
             name: trimmedName,
-            calories: calorieValue
+            calories: calorieValue,
+            proteinGrams: proteinValue
         )
         
         // Set the date to the target date (for weekly planning)
@@ -265,7 +286,11 @@ struct AddFoodView: View {
             print("✅ Food item saved successfully")
             
             // Add to food history using the new manager
-            historyManager.addOrUpdate(name: trimmedName, calories: calorieValue)
+            historyManager.addOrUpdate(
+                name: trimmedName,
+                calories: calorieValue,
+                proteinGrams: proteinValue
+            )
             
             // Force widget refresh immediately after saving
             WidgetCenter.shared.reloadAllTimelines()
@@ -283,6 +308,7 @@ struct AddFoodView: View {
     private func selectFromHistory(_ historyItem: FoodHistoryItem) {
         foodName = historyItem.name
         calories = String(historyItem.calories)
+        proteinGrams = String(historyItem.proteinGrams)
         showSearchDropdown = false
         
         // Update usage count and last used date
@@ -306,6 +332,7 @@ struct AddFoodView: View {
     private func selectSearchResult(_ item: FoodHistoryItem) {
         foodName = item.name
         calories = String(item.calories)
+        proteinGrams = String(item.proteinGrams)
         showSearchDropdown = false
         isNameFieldFocused = false
         

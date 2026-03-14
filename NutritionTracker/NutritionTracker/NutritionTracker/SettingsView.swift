@@ -8,11 +8,16 @@ struct SettingsView: View {
     @Query(sort: \CalorieGoal.effectiveDate, order: .reverse) var calorieGoals: [CalorieGoal]
     
     @State private var newCalorieGoal: String = ""
+    @State private var newProteinGoal: String = ""
     @State private var showingAlert = false
     @State private var alertMessage = ""
     
     var currentGoal: Int {
         CalorieGoal.currentGoal(for: Date(), from: calorieGoals)
+    }
+
+    var currentProteinGoal: Int {
+        CalorieGoal.currentProteinGoal(for: Date(), from: calorieGoals)
     }
     
     var body: some View {
@@ -23,15 +28,28 @@ struct SettingsView: View {
                         .font(AppTheme.headlineFont)
                         .foregroundColor(AppTheme.textPrimary)
                     
-                    HStack {
-                        Text("\(currentGoal)")
-                            .font(AppTheme.titleFont)
-                            .fontWeight(.bold)
-                            .foregroundColor(AppTheme.primaryGreen)
-                        
-                        Text("calories")
-                            .font(AppTheme.bodyFont)
-                            .foregroundColor(AppTheme.textSecondary)
+                    VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
+                        HStack {
+                            Text("\(currentGoal)")
+                                .font(AppTheme.titleFont)
+                                .fontWeight(.bold)
+                                .foregroundColor(AppTheme.primaryGreen)
+
+                            Text("calories")
+                                .font(AppTheme.bodyFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+
+                        HStack {
+                            Text("\(currentProteinGoal)")
+                                .font(AppTheme.titleFont)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+
+                            Text("grams protein")
+                                .font(AppTheme.bodyFont)
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -45,6 +63,10 @@ struct SettingsView: View {
                         .foregroundColor(AppTheme.textPrimary)
                     
                     TextField("Enter calories (e.g., 2500)", text: $newCalorieGoal)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .keyboardType(.numberPad)
+
+                    TextField("Enter protein target (e.g., 200)", text: $newProteinGoal)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .keyboardType(.numberPad)
                     
@@ -62,7 +84,7 @@ struct SettingsView: View {
                             .background(AppTheme.primaryGreen)
                             .cornerRadius(AppTheme.radiusM)
                     }
-                    .disabled(newCalorieGoal.isEmpty)
+                    .disabled(newCalorieGoal.isEmpty || newProteinGoal.isEmpty)
                 }
                 .padding()
                 .background(AppTheme.cardBackground)
@@ -77,7 +99,7 @@ struct SettingsView: View {
                         ForEach(calorieGoals.prefix(5), id: \.effectiveDate) { goal in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(goal.goalCalories) calories")
+                                    Text("\(goal.goalCalories) calories • \(goal.goalProteinGrams)g protein")
                                         .font(AppTheme.bodyFont)
                                         .foregroundColor(AppTheme.textPrimary)
                                     
@@ -127,6 +149,7 @@ struct SettingsView: View {
         }
         .onAppear {
             newCalorieGoal = String(currentGoal)
+            newProteinGoal = String(currentProteinGoal)
         }
     }
     
@@ -136,8 +159,18 @@ struct SettingsView: View {
             showingAlert = true
             return
         }
+
+        guard let protein = Int(newProteinGoal), protein > 0 else {
+            alertMessage = "Please enter a valid number of protein grams"
+            showingAlert = true
+            return
+        }
         
-        let newGoal = CalorieGoal(goalCalories: calories, effectiveDate: Date())
+        let newGoal = CalorieGoal(
+            goalCalories: calories,
+            goalProteinGrams: protein,
+            effectiveDate: Date()
+        )
         modelContext.insert(newGoal)
         
         do {
@@ -146,11 +179,11 @@ struct SettingsView: View {
             // Force refresh widgets after calorie goal change
             WidgetCenter.shared.reloadAllTimelines()
             
-            alertMessage = "Your daily calorie goal has been updated to \(calories) calories"
+            alertMessage = "Your daily goals have been updated to \(calories) calories and \(protein)g protein"
             showingAlert = true
             
             // Debug: Print the new goal to verify it was saved
-            print("CalorieGoal saved: \(calories) calories effective from \(Date())")
+            print("CalorieGoal saved: \(calories) calories, \(protein)g protein effective from \(Date())")
         } catch {
             print("Error saving CalorieGoal: \(error)")
             alertMessage = "Failed to save calorie goal. Please try again."

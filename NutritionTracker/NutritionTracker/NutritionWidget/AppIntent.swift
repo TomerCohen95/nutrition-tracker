@@ -10,6 +10,8 @@ import Foundation
 import SwiftData
 import WidgetKit
 
+private let widgetAppGroupID = "group.com.OneFifty.Aoo"
+
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "Configuration" }
     static var description: IntentDescription { "Configure your nutrition widget." }
@@ -31,16 +33,12 @@ struct ToggleFoodStatusIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         // Create model container with App Group support
         let schema = Schema([FoodItem.self])
-        let modelConfiguration = ModelConfiguration(
-            "NutritionTracker",
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true,
-            groupContainer: .identifier("group.com.OneFifty.Aoo")
-        )
 
         do {
-            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(
+                for: schema,
+                configurations: [makeWidgetModelConfiguration(schema: schema)]
+            )
             let context = ModelContext(container)
 
             // Find the food item by ID
@@ -79,6 +77,26 @@ struct ToggleFoodStatusIntent: AppIntent {
             throw IntentError.databaseError
         }
     }
+}
+
+private func makeWidgetModelConfiguration(schema: Schema) -> ModelConfiguration {
+    if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: widgetAppGroupID) != nil {
+        return ModelConfiguration(
+            "NutritionTracker",
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            groupContainer: .identifier(widgetAppGroupID)
+        )
+    }
+
+    print("⚠️ Widget App Group container unavailable, falling back to local SwiftData store")
+    return ModelConfiguration(
+        "NutritionTracker",
+        schema: schema,
+        isStoredInMemoryOnly: false,
+        allowsSave: true
+    )
 }
 
 enum IntentError: Error, LocalizedError {

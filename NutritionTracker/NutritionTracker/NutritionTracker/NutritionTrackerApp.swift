@@ -25,21 +25,8 @@ struct NutritionTrackerApp: App {
             FoodHistory.self,
         ])
         
-        // Get the shared container URL for app group
-        guard let storeURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
-            fatalError("Shared container could not be created.")
-        }
-        
-        let modelConfiguration = ModelConfiguration(
-            "NutritionTracker",
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true,
-            groupContainer: .identifier("group.com.OneFifty.Aoo")
-        )
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [Self.makeModelConfiguration(schema: schema)])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -53,6 +40,26 @@ struct NutritionTrackerApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    private static func makeModelConfiguration(schema: Schema) -> ModelConfiguration {
+        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupID) != nil {
+            return ModelConfiguration(
+                "NutritionTracker",
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                groupContainer: .identifier(Self.appGroupID)
+            )
+        }
+
+        print("⚠️ App Group container unavailable, falling back to local SwiftData store")
+        return ModelConfiguration(
+            "NutritionTracker",
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true
+        )
     }
     
     // MARK: - Migration

@@ -13,14 +13,16 @@ final class FoodItem {
     var id: UUID
     var name: String
     var calories: Int
+    var proteinGrams: Int = 0
     var date: Date
     var status: FoodStatus
     var createdAt: Date
     
-    init(name: String, calories: Int, date: Date = Date()) {
+    init(name: String, calories: Int, proteinGrams: Int = 0, date: Date = Date()) {
         self.id = UUID()
         self.name = name
         self.calories = calories
+        self.proteinGrams = proteinGrams
         self.date = date
         self.status = .planned
         self.createdAt = Date()

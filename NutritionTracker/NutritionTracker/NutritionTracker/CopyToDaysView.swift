@@ -58,7 +58,7 @@ struct CopyToDaysView: View {
                             .font(.body)
                             .fontWeight(.medium)
                         
-                        Text("\(foodItem.calories) kcal")
+                        Text("\(foodItem.calories) kcal • \(foodItem.proteinGrams)g protein")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -200,7 +200,12 @@ struct CopyToDaysView: View {
         
         for targetDate in selectedDates {
             // Create a new food item for each selected date
-            let newFoodItem = FoodItem(name: foodItem.name, calories: foodItem.calories, date: targetDate)
+            let newFoodItem = FoodItem(
+                name: foodItem.name,
+                calories: foodItem.calories,
+                proteinGrams: foodItem.proteinGrams,
+                date: targetDate
+            )
             newFoodItem.status = .planned
             
             modelContext.insert(newFoodItem)
@@ -281,7 +286,7 @@ struct DaySelectionCard: View {
 }
 
 #Preview {
-    let sampleItem = FoodItem(name: "Apple", calories: 95)
+    let sampleItem = FoodItem(name: "Apple", calories: 95, proteinGrams: 0)
     CopyToDaysView(foodItem: sampleItem)
         .modelContainer(for: FoodItem.self, inMemory: true)
 }

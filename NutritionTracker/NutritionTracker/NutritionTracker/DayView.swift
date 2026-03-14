@@ -32,6 +32,10 @@ struct DayView: View {
         CalorieGoal.currentGoal(for: date, from: calorieGoals)
     }
 
+    private var dailyProteinGoal: Int {
+        CalorieGoal.currentProteinGoal(for: date, from: calorieGoals)
+    }
+
     // Filter items for the specific date
     private var dayItems: [FoodItem] {
         let startOfDay = Calendar.current.startOfDay(for: date)
@@ -55,6 +59,17 @@ struct DayView: View {
             .reduce(0) { $0 + $1.calories }
     }
 
+    private var proteinEaten: Int {
+        dayItems
+            .filter { $0.status == .eaten }
+            .reduce(0) { $0 + $1.proteinGrams }
+    }
+
+    private var proteinPlanned: Int {
+        dayItems
+            .reduce(0) { $0 + $1.proteinGrams }
+    }
+
     // Calculate remaining calories for this date
     private var remainingCalories: Int {
         dailyGoal - caloriesEaten
@@ -63,6 +78,14 @@ struct DayView: View {
     // Calculate remaining planned calories
     private var remainingPlannedCalories: Int {
         dailyGoal - caloriesPlanned
+    }
+
+    private var remainingProtein: Int {
+        dailyProteinGoal - proteinEaten
+    }
+
+    private var remainingPlannedProtein: Int {
+        dailyProteinGoal - proteinPlanned
     }
 
     // Check if this is today
@@ -98,6 +121,10 @@ struct DayView: View {
                         Text("Goal: \(dailyGoal) kcal")
                             .font(.system(size: 12))
                             .foregroundColor(AppTheme.textSecondary)
+
+                        Text("Protein Target: \(dailyProteinGoal)g")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     Spacer()
@@ -116,7 +143,11 @@ struct DayView: View {
 
                 // Compact dual progress bars
                 VStack(spacing: 6) {
-                    // Eaten progress bar
+                    Text("Calories")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     HStack {
                         Text("Eaten")
                             .font(.system(size: 13, weight: .medium))
@@ -156,6 +187,52 @@ struct DayView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppTheme.textSecondary)
                             .frame(width: 40, alignment: .trailing)
+                    }
+
+                    Text("Protein")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, AppTheme.paddingXS)
+
+                    HStack {
+                        Text("Eaten")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(AppTheme.primaryGreen)
+                            .frame(width: 55, alignment: .leading)
+
+                        ProgressView(
+                            value: min(Double(proteinEaten), Double(dailyProteinGoal)),
+                            total: Double(dailyProteinGoal)
+                        )
+                        .tint(
+                            remainingProtein >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange
+                        )
+                        .scaleEffect(y: 0.8)
+
+                        Text("\(proteinEaten)g")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 48, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Planned")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 55, alignment: .leading)
+
+                        ProgressView(
+                            value: min(Double(proteinPlanned), Double(dailyProteinGoal)),
+                            total: Double(dailyProteinGoal)
+                        )
+                        .tint(remainingPlannedProtein >= 0 ? .blue : .orange)
+                        .scaleEffect(y: 0.8)
+
+                        Text("\(proteinPlanned)g")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 48, alignment: .trailing)
                     }
                 }
             }
@@ -322,7 +399,12 @@ struct DayView: View {
     }
 
     private func duplicateItem(_ item: FoodItem) {
-        let duplicatedItem = FoodItem(name: item.name, calories: item.calories, date: date)
+        let duplicatedItem = FoodItem(
+            name: item.name,
+            calories: item.calories,
+            proteinGrams: item.proteinGrams,
+            date: date
+        )
         modelContext.insert(duplicatedItem)
 
         do {
