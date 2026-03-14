@@ -89,8 +89,23 @@ struct WeeklyPlannerView: View {
             .reduce(0) { $0 + $1.calories }
     }
 
+    private var proteinEaten: Int {
+        selectedDayItems
+            .filter { $0.status == .eaten }
+            .reduce(0) { $0 + $1.proteinGrams }
+    }
+
+    private var proteinPlanned: Int {
+        selectedDayItems
+            .reduce(0) { $0 + $1.proteinGrams }
+    }
+
     private var dailyGoal: Int {
         CalorieGoal.currentGoal(for: selectedDate, from: calorieGoals)
+    }
+
+    private var dailyProteinGoal: Int {
+        CalorieGoal.currentProteinGoal(for: selectedDate, from: calorieGoals)
     }
 
     private var remainingCalories: Int {
@@ -99,6 +114,14 @@ struct WeeklyPlannerView: View {
 
     private var remainingPlannedCalories: Int {
         dailyGoal - caloriesPlanned
+    }
+
+    private var remainingProtein: Int {
+        dailyProteinGoal - proteinEaten
+    }
+
+    private var remainingPlannedProtein: Int {
+        dailyProteinGoal - proteinPlanned
     }
 
     var body: some View {
@@ -272,6 +295,10 @@ struct WeeklyPlannerView: View {
                         Text("Goal: \(dailyGoal) cal")
                             .font(.system(size: 12))
                             .foregroundColor(AppTheme.textSecondary)
+
+                        Text("Protein Target: \(dailyProteinGoal)g")
+                            .font(.system(size: 12))
+                            .foregroundColor(AppTheme.textSecondary)
                     }
 
                     Spacer()
@@ -324,7 +351,11 @@ struct WeeklyPlannerView: View {
 
                 // Compact dual progress bars
                 VStack(spacing: 6) {
-                    // Eaten Progress Bar
+                    Text("Calories")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     HStack {
                         Text("Eaten")
                             .font(.system(size: 13, weight: .medium))
@@ -359,6 +390,47 @@ struct WeeklyPlannerView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppTheme.textSecondary)
                             .frame(width: 40, alignment: .trailing)
+                    }
+
+                    Text("Protein")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, AppTheme.paddingXS)
+
+                    HStack {
+                        Text("Eaten")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(AppTheme.primaryGreen)
+                            .frame(width: 55, alignment: .leading)
+
+                        ProgressView(value: Double(proteinEaten), total: Double(dailyProteinGoal))
+                            .tint(
+                                remainingProtein >= 0
+                                    ? AppTheme.primaryGreen : AppTheme.accentOrange
+                            )
+                            .scaleEffect(y: 0.8)
+
+                        Text("\(proteinEaten)g")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 48, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Planned")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 55, alignment: .leading)
+
+                        ProgressView(value: Double(proteinPlanned), total: Double(dailyProteinGoal))
+                            .tint(remainingPlannedProtein >= 0 ? .blue : .orange)
+                            .scaleEffect(y: 0.8)
+
+                        Text("\(proteinPlanned)g")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 48, alignment: .trailing)
                     }
                 }
             }
@@ -489,6 +561,7 @@ struct WeeklyPlannerView: View {
                 let copiedItem = FoodItem(
                     name: item.name,
                     calories: item.calories,
+                    proteinGrams: item.proteinGrams,
                     date: Calendar.current.startOfDay(for: destinationDate)
                 )
 
@@ -693,7 +766,7 @@ struct WeeklyFoodItemRow: View {
                     .fontWeight(.semibold)
                     .foregroundColor(AppTheme.textPrimary)
 
-                Text("cal")
+                Text("\(item.proteinGrams)g")
                     .font(AppTheme.captionFont)
                     .foregroundColor(AppTheme.textSecondary)
             }

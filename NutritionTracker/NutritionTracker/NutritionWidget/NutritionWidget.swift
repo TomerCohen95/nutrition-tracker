@@ -11,6 +11,8 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
+private let widgetAppGroupID = "group.com.OneFifty.Aoo"
+
 struct NutritionWidget: Widget {
     let kind: String = "NutritionWidget"
 
@@ -31,11 +33,14 @@ struct Provider: TimelineProvider {
             date: Date(),
             caloriesEaten: 1234,
             caloriesPlanned: 1584,
+            proteinEaten: 132,
+            proteinPlanned: 176,
             dailyGoal: 2000,
+            proteinGoal: 200,
             foodItems: [
-                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95),
-                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350),
-                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150),
+                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
+                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150, 6),
             ],
             allItems: []
         )
@@ -46,11 +51,14 @@ struct Provider: TimelineProvider {
             date: Date(),
             caloriesEaten: 1234,
             caloriesPlanned: 1584,
+            proteinEaten: 132,
+            proteinPlanned: 176,
             dailyGoal: 2000,
+            proteinGoal: 200,
             foodItems: [
-                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95),
-                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350),
-                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150),
+                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
+                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150, 6),
             ],
             allItems: []
         )
@@ -72,16 +80,12 @@ struct Provider: TimelineProvider {
         // Create model container with App Group
         // Note: FoodHistory is now stored in UserDefaults via FoodHistoryManager
         let schema = Schema([FoodItem.self, CalorieGoal.self])
-        let modelConfiguration = ModelConfiguration(
-            "NutritionTracker",
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true,
-            groupContainer: .identifier("group.com.OneFifty.Aoo")
-        )
 
         do {
-            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(
+                for: schema,
+                configurations: [makeWidgetModelConfiguration(schema: schema)]
+            )
             let context = ModelContext(container)
 
             // Fetch today's items
@@ -108,23 +112,36 @@ struct Provider: TimelineProvider {
                 todaysItems
                 .reduce(0) { $0 + $1.calories }
 
+            let proteinEaten =
+                todaysItems
+                .filter { $0.status == FoodItem.FoodStatus.eaten }
+                .reduce(0) { $0 + $1.proteinGrams }
+
+            let proteinPlanned =
+                todaysItems
+                .reduce(0) { $0 + $1.proteinGrams }
+
             // Fetch current calorie goal
             let goalDescriptor = FetchDescriptor<CalorieGoal>(
                 sortBy: [SortDescriptor(\.effectiveDate, order: .reverse)]
             )
             let calorieGoals = try context.fetch(goalDescriptor)
             let currentGoal = CalorieGoal.currentGoal(for: date, from: calorieGoals)
+            let currentProteinGoal = CalorieGoal.currentProteinGoal(for: date, from: calorieGoals)
 
             // Prepare food items for display with more items for larger widgets
             let displayItems = todaysItems.map { item in
-                (item.id.uuidString, item.name, item.status, item.calories)
+                (item.id.uuidString, item.name, item.status, item.calories, item.proteinGrams)
             }
 
             return SimpleEntry(
                 date: date,
                 caloriesEaten: caloriesEaten,
                 caloriesPlanned: caloriesPlanned,
+                proteinEaten: proteinEaten,
+                proteinPlanned: proteinPlanned,
                 dailyGoal: currentGoal,
+                proteinGoal: currentProteinGoal,
                 foodItems: displayItems,
                 allItems: todaysItems
             )
@@ -136,7 +153,10 @@ struct Provider: TimelineProvider {
                 date: date,
                 caloriesEaten: 0,
                 caloriesPlanned: 0,
+                proteinEaten: 0,
+                proteinPlanned: 0,
                 dailyGoal: 2000,
+                proteinGoal: 200,
                 foodItems: [],
                 allItems: []
             )
@@ -144,12 +164,35 @@ struct Provider: TimelineProvider {
     }
 }
 
+private func makeWidgetModelConfiguration(schema: Schema) -> ModelConfiguration {
+    if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: widgetAppGroupID) != nil {
+        return ModelConfiguration(
+            "NutritionTracker",
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true,
+            groupContainer: .identifier(widgetAppGroupID)
+        )
+    }
+
+    print("⚠️ Widget App Group container unavailable, falling back to local SwiftData store")
+    return ModelConfiguration(
+        "NutritionTracker",
+        schema: schema,
+        isStoredInMemoryOnly: false,
+        allowsSave: true
+    )
+}
+
 struct SimpleEntry: TimelineEntry {
     let date: Date
     let caloriesEaten: Int
     let caloriesPlanned: Int
+    let proteinEaten: Int
+    let proteinPlanned: Int
     let dailyGoal: Int
-    let foodItems: [(String, String, FoodItem.FoodStatus, Int)]  // ID, Name, Status, Calories
+    let proteinGoal: Int
+    let foodItems: [(String, String, FoodItem.FoodStatus, Int, Int)]  // ID, Name, Status, Calories, Protein
     let allItems: [FoodItem]
 }
 
@@ -181,6 +224,10 @@ struct SmallWidgetView: View {
         entry.dailyGoal - entry.caloriesEaten
     }
 
+    private var remainingProtein: Int {
+        entry.proteinGoal - entry.proteinEaten
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Header
@@ -204,6 +251,10 @@ struct SmallWidgetView: View {
                 Text("/ \(entry.dailyGoal) kcal")
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                Text("\(entry.proteinEaten) / \(entry.proteinGoal)g protein")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
 
             // Remaining/Over
@@ -216,6 +267,10 @@ struct SmallWidgetView: View {
                     .font(.caption)
                     .foregroundColor(.red)
             }
+
+            Text("\(remainingProtein)g protein left")
+                .font(.caption2)
+                .foregroundColor(remainingProtein >= 0 ? .blue : .orange)
 
             Spacer()
 
@@ -241,6 +296,14 @@ struct MediumWidgetView: View {
         entry.dailyGoal - entry.caloriesPlanned
     }
 
+    private var remainingProtein: Int {
+        entry.proteinGoal - entry.proteinEaten
+    }
+
+    private var remainingPlannedProtein: Int {
+        entry.proteinGoal - entry.proteinPlanned
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Header
@@ -258,7 +321,7 @@ struct MediumWidgetView: View {
                         Text("Eaten:")
                             .font(.system(size: 9))
                             .foregroundColor(.secondary)
-                        Text("\(entry.caloriesEaten) / \(entry.dailyGoal)")
+                        Text("\(entry.caloriesEaten) / \(entry.dailyGoal) kcal")
                             .font(.system(size: 10, weight: .medium))
                     }
 
@@ -267,9 +330,13 @@ struct MediumWidgetView: View {
                         Text("Planned:")
                             .font(.system(size: 9))
                             .foregroundColor(.secondary)
-                        Text("\(entry.caloriesPlanned) / \(entry.dailyGoal)")
+                        Text("\(entry.caloriesPlanned) / \(entry.dailyGoal) kcal")
                             .font(.system(size: 10, weight: .medium))
                     }
+
+                    Text("\(entry.proteinEaten)/\(entry.proteinGoal)g eaten • \(entry.proteinPlanned)/\(entry.proteinGoal)g planned")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
             }
 
@@ -353,6 +420,10 @@ struct MediumWidgetView: View {
                             Text("\(item.3)")
                                 .font(.system(size: 8))
                                 .foregroundColor(.secondary)
+
+                            Text("• \(item.4)g")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 1)
                     }
@@ -383,10 +454,13 @@ struct MediumWidgetView: View {
         date: Date.now,
         caloriesEaten: 1234,
         caloriesPlanned: 1584,
+        proteinEaten: 132,
+        proteinPlanned: 176,
         dailyGoal: 2000,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
         ],
         allItems: []
     )
@@ -399,12 +473,15 @@ struct MediumWidgetView: View {
         date: Date.now,
         caloriesEaten: 1245,
         caloriesPlanned: 1945,
+        proteinEaten: 136,
+        proteinPlanned: 201,
         dailyGoal: 2000,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
-            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
-            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120, 6),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150, 15),
         ],
         allItems: []
     )
@@ -432,6 +509,10 @@ struct LargeWidgetHeaderView: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
+
+                Text("\(entry.proteinEaten) / \(entry.proteinGoal)g protein")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.blue)
             }
 
             Spacer()
@@ -479,46 +560,8 @@ struct LargeWidgetHeaderView: View {
     }
 }
 
-struct LargeWidgetProgressView: View {
-    let entry: SimpleEntry
-    let remainingCalories: Int
-    let remainingPlannedCalories: Int
-    
-    var body: some View {
-        VStack(spacing: 3) {
-            // Eaten progress bar
-            HStack {
-                Text("Eaten")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .frame(width: 50, alignment: .leading)
-                ProgressView(
-                    value: min(Double(entry.caloriesEaten), Double(entry.dailyGoal)),
-                    total: Double(entry.dailyGoal)
-                )
-                .tint(remainingCalories >= 0 ? .green : .red)
-                .scaleEffect(y: 0.7)
-            }
-
-            // Planned progress bar
-            HStack {
-                Text("Planned")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .frame(width: 50, alignment: .leading)
-                ProgressView(
-                    value: min(Double(entry.caloriesPlanned), Double(entry.dailyGoal)),
-                    total: Double(entry.dailyGoal)
-                )
-                .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
-                .scaleEffect(y: 0.7)
-            }
-        }
-    }
-}
-
 struct LargeWidgetFoodItemView: View {
-    let item: (String, String, FoodItem.FoodStatus, Int)
+    let item: (String, String, FoodItem.FoodStatus, Int, Int)
     let itemSize: LargeWidgetSizing
     
     var body: some View {
@@ -536,7 +579,7 @@ struct LargeWidgetFoodItemView: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
 
-                Text("\(item.3) kcal")
+                Text("\(item.3) kcal • \(item.4)g")
                     .font(.system(size: itemSize.subtitleSize))
                     .foregroundColor(.secondary)
             }
@@ -544,8 +587,11 @@ struct LargeWidgetFoodItemView: View {
             Spacer()
         }
         .padding(itemSize.padding)
-        .background(Color(.systemGray6))
-        .cornerRadius(6)
+        .background(Color.clear)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -581,12 +627,6 @@ struct LargeWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             LargeWidgetHeaderView(
-                entry: entry,
-                remainingCalories: remainingCalories,
-                remainingPlannedCalories: remainingPlannedCalories
-            )
-            
-            LargeWidgetProgressView(
                 entry: entry,
                 remainingCalories: remainingCalories,
                 remainingPlannedCalories: remainingPlannedCalories
@@ -631,11 +671,15 @@ struct ExtraLargeWidgetView: View {
         entry.dailyGoal - entry.caloriesPlanned
     }
 
-    private var eatenItems: [(String, String, FoodItem.FoodStatus, Int)] {
+    private var remainingProtein: Int {
+        entry.proteinGoal - entry.proteinEaten
+    }
+
+    private var eatenItems: [(String, String, FoodItem.FoodStatus, Int, Int)] {
         entry.foodItems.filter { $0.2 == FoodItem.FoodStatus.eaten }
     }
 
-    private var plannedItems: [(String, String, FoodItem.FoodStatus, Int)] {
+    private var plannedItems: [(String, String, FoodItem.FoodStatus, Int, Int)] {
         entry.foodItems.filter { $0.2 == FoodItem.FoodStatus.planned }
     }
 
@@ -658,6 +702,10 @@ struct ExtraLargeWidgetView: View {
                             .font(.title3)
                             .foregroundColor(.secondary)
                     }
+
+                    Text("\(entry.proteinEaten) / \(entry.proteinGoal)g protein eaten")
+                        .font(.title3)
+                        .foregroundColor(.blue)
 
                     // Progress bars
                     VStack(spacing: 4) {
@@ -715,6 +763,16 @@ struct ExtraLargeWidgetView: View {
                         }
                     }
 
+                    VStack(alignment: .trailing) {
+                        Text("\(remainingProtein)g")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(remainingProtein >= 0 ? .blue : .orange)
+                        Text("protein left")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     // Planned stats
                     VStack(alignment: .trailing) {
                         Text("\(entry.caloriesPlanned)")
@@ -748,7 +806,7 @@ struct ExtraLargeWidgetView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                         Spacer()
-                        Text("\(eatenItems.reduce(0) { $0 + $1.3 }) kcal")
+                        Text("\(eatenItems.reduce(0) { $0 + $1.3 }) kcal • \(eatenItems.reduce(0) { $0 + $1.4 })g")
                             .font(.caption)
                             .foregroundColor(.green)
                     }
@@ -772,7 +830,7 @@ struct ExtraLargeWidgetView: View {
                                         .font(.body)
                                         .lineLimit(2)
                                         .minimumScaleFactor(0.8)
-                                    Text("\(item.3) kcal")
+                                    Text("\(item.3) kcal • \(item.4)g")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -796,7 +854,7 @@ struct ExtraLargeWidgetView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                         Spacer()
-                        Text("\(plannedItems.reduce(0) { $0 + $1.3 }) kcal")
+                        Text("\(plannedItems.reduce(0) { $0 + $1.3 }) kcal • \(plannedItems.reduce(0) { $0 + $1.4 })g")
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
@@ -820,7 +878,7 @@ struct ExtraLargeWidgetView: View {
                                         .font(.body)
                                         .lineLimit(2)
                                         .minimumScaleFactor(0.8)
-                                    Text("\(item.3) kcal")
+                                    Text("\(item.3) kcal • \(item.4)g")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -847,10 +905,13 @@ struct ExtraLargeWidgetView: View {
         date: Date.now,
         caloriesEaten: 1234,
         caloriesPlanned: 1584,
+        proteinEaten: 132,
+        proteinPlanned: 176,
         dailyGoal: 2000,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
         ],
         allItems: []
     )
@@ -863,16 +924,19 @@ struct ExtraLargeWidgetView: View {
         date: Date.now,
         caloriesEaten: 1245,
         caloriesPlanned: 1945,
+        proteinEaten: 136,
+        proteinPlanned: 201,
         dailyGoal: 2000,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
-            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
-            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
-            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200),
-            ("6", "Rice", FoodItem.FoodStatus.planned, 150),
-            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30),
-            ("8", "Almonds", FoodItem.FoodStatus.planned, 160),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120, 6),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150, 15),
+            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200, 31),
+            ("6", "Rice", FoodItem.FoodStatus.planned, 150, 4),
+            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30, 3),
+            ("8", "Almonds", FoodItem.FoodStatus.planned, 160, 6),
         ],
         allItems: []
     )
@@ -885,16 +949,19 @@ struct ExtraLargeWidgetView: View {
         date: Date.now,
         caloriesEaten: 1400,
         caloriesPlanned: 2060,
+        proteinEaten: 148,
+        proteinPlanned: 189,
         dailyGoal: 2000,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350),
-            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
-            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
-            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200),
-            ("6", "Rice", FoodItem.FoodStatus.planned, 150),
-            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30),
-            ("8", "Almonds", FoodItem.FoodStatus.planned, 160),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120, 6),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150, 15),
+            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200, 31),
+            ("6", "Rice", FoodItem.FoodStatus.planned, 150, 4),
+            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30, 3),
+            ("8", "Almonds", FoodItem.FoodStatus.planned, 160, 6),
         ],
         allItems: []
     )
@@ -907,18 +974,21 @@ struct ExtraLargeWidgetView: View {
         date: Date.now,
         caloriesEaten: 1600,
         caloriesPlanned: 2375,
+        proteinEaten: 165,
+        proteinPlanned: 223,
         dailyGoal: 2200,
+        proteinGoal: 200,
         foodItems: [
-            ("1", "Apple", FoodItem.FoodStatus.eaten, 95),
-            ("2", "Sandwich", FoodItem.FoodStatus.eaten, 350),
-            ("3", "Salad", FoodItem.FoodStatus.eaten, 120),
-            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150),
-            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200),
-            ("6", "Rice", FoodItem.FoodStatus.planned, 150),
-            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30),
-            ("8", "Almonds", FoodItem.FoodStatus.planned, 160),
-            ("9", "Banana", FoodItem.FoodStatus.planned, 100),
-            ("10", "Greek Yogurt", FoodItem.FoodStatus.planned, 120),
+            ("1", "Apple", FoodItem.FoodStatus.eaten, 95, 0),
+            ("2", "Sandwich", FoodItem.FoodStatus.eaten, 350, 28),
+            ("3", "Salad", FoodItem.FoodStatus.eaten, 120, 6),
+            ("4", "Yogurt", FoodItem.FoodStatus.eaten, 150, 15),
+            ("5", "Chicken Breast", FoodItem.FoodStatus.planned, 200, 31),
+            ("6", "Rice", FoodItem.FoodStatus.planned, 150, 4),
+            ("7", "Broccoli", FoodItem.FoodStatus.eaten, 30, 3),
+            ("8", "Almonds", FoodItem.FoodStatus.planned, 160, 6),
+            ("9", "Banana", FoodItem.FoodStatus.planned, 100, 1),
+            ("10", "Greek Yogurt", FoodItem.FoodStatus.planned, 120, 17),
         ],
         allItems: []
     )

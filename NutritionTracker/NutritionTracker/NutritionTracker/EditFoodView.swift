@@ -18,6 +18,7 @@ struct EditFoodView: View {
     
     @State private var name: String
     @State private var calories: String
+    @State private var proteinGrams: String
     @State private var showAlert = false
     @State private var alertMessage = ""
     
@@ -25,6 +26,7 @@ struct EditFoodView: View {
         self.foodItem = foodItem
         self._name = State(initialValue: foodItem.name)
         self._calories = State(initialValue: String(foodItem.calories))
+        self._proteinGrams = State(initialValue: String(foodItem.proteinGrams))
     }
     
     var body: some View {
@@ -48,7 +50,7 @@ struct EditFoodView: View {
                     saveChanges()
                 }
                 .fontWeight(.semibold)
-                .disabled(name.isEmpty || calories.isEmpty)
+                .disabled(name.isEmpty || calories.isEmpty || proteinGrams.isEmpty)
             }
             .padding()
             
@@ -72,10 +74,20 @@ struct EditFoodView: View {
                         .keyboardType(.numberPad)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Protein")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    TextField("Enter protein in grams", text: $proteinGrams)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
                 
                 // Current values display
                 VStack(spacing: 8) {
-                    Text("Current: \(foodItem.name) - \(foodItem.calories) kcal")
+                    Text("Current: \(foodItem.name) - \(foodItem.calories) kcal - \(foodItem.proteinGrams)g protein")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -108,10 +120,17 @@ struct EditFoodView: View {
             showAlert = true
             return
         }
+
+        guard let proteinValue = Int(proteinGrams), proteinValue >= 0 else {
+            alertMessage = "Please enter a valid number of protein grams"
+            showAlert = true
+            return
+        }
         
         // Update the food item
         foodItem.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         foodItem.calories = calorieValue
+        foodItem.proteinGrams = proteinValue
         
         do {
             try modelContext.save()
@@ -129,7 +148,7 @@ struct EditFoodView: View {
 
 #Preview {
     @Previewable @State var sampleItem: FoodItem = {
-        let item = FoodItem(name: "Apple", calories: 95, date: Date())
+        let item = FoodItem(name: "Apple", calories: 95, proteinGrams: 0, date: Date())
         item.status = .planned
         return item
     }()

@@ -75,15 +75,20 @@ final class FoodHistoryManager: ObservableObject {
     /// - Parameters:
     ///   - name: The food name
     ///   - calories: The calorie count
-    func addOrUpdate(name: String, calories: Int) {
+    ///   - proteinGrams: The protein count in grams
+    func addOrUpdate(name: String, calories: Int, proteinGrams: Int) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, calories > 0 else {
-            print("⚠️ FoodHistoryManager: Invalid input - name: '\(name)', calories: \(calories)")
+        guard !trimmedName.isEmpty, calories > 0, proteinGrams >= 0 else {
+            print(
+                "⚠️ FoodHistoryManager: Invalid input - name: '\(name)', calories: \(calories), protein: \(proteinGrams)"
+            )
             return
         }
         
         // Check if item already exists
-        if let existingIndex = history.firstIndex(where: { $0.matches(name: trimmedName, calories: calories) }) {
+        if let existingIndex = history.firstIndex(where: {
+            $0.matches(name: trimmedName, calories: calories, proteinGrams: proteinGrams)
+        }) {
             // Update existing item
             let existingItem = history[existingIndex]
             let updatedItem = existingItem.withUpdatedUsage()
@@ -92,7 +97,11 @@ final class FoodHistoryManager: ObservableObject {
             print("🔄 FoodHistoryManager: Updated existing item '\(trimmedName)' (usage count: \(updatedItem.usageCount))")
         } else {
             // Add new item
-            let newItem = FoodHistoryItem(name: trimmedName, calories: calories)
+            let newItem = FoodHistoryItem(
+                name: trimmedName,
+                calories: calories,
+                proteinGrams: proteinGrams
+            )
             history.insert(newItem, at: 0) // Add to front
             print("➕ FoodHistoryManager: Added new item '\(trimmedName)'")
             
@@ -174,12 +183,15 @@ final class FoodHistoryManager: ObservableObject {
             let historyItem = FoodHistoryItem(
                 name: item.name,
                 calories: item.calories,
+                proteinGrams: 0,
                 lastUsed: item.lastUsed,
                 usageCount: item.usageCount
             )
             
             // Only add if not already present
-            if !history.contains(where: { $0.matches(name: item.name, calories: item.calories) }) {
+            if !history.contains(where: {
+                $0.matches(name: item.name, calories: item.calories, proteinGrams: 0)
+            }) {
                 history.append(historyItem)
             }
         }
@@ -226,7 +238,9 @@ extension FoodHistoryManager {
         print("App Group ID: \(appGroupID)")
         print("UserDefaults suite: \(userDefaults.description)")
         for (index, item) in history.prefix(5).enumerated() {
-            print("  \(index + 1). \(item.name) - \(item.calories) kcal (used \(item.usageCount)x)")
+            print(
+                "  \(index + 1). \(item.name) - \(item.calories) kcal - \(item.proteinGrams)g protein (used \(item.usageCount)x)"
+            )
         }
         if history.count > 5 {
             print("  ... and \(history.count - 5) more")
@@ -237,18 +251,18 @@ extension FoodHistoryManager {
     /// Add sample data for testing
     func addSampleData() {
         let samples = [
-            ("Apple", 95),
-            ("Banana", 105),
-            ("Chicken Breast", 165),
-            ("Rice (1 cup)", 206),
-            ("Egg", 78),
-            ("Oatmeal", 150),
-            ("Greek Yogurt", 100),
-            ("Almonds (1 oz)", 164)
+            ("Apple", 95, 0),
+            ("Banana", 105, 1),
+            ("Chicken Breast", 165, 31),
+            ("Rice (1 cup)", 206, 4),
+            ("Egg", 78, 6),
+            ("Oatmeal", 150, 5),
+            ("Greek Yogurt", 100, 17),
+            ("Almonds (1 oz)", 164, 6)
         ]
         
-        for (name, calories) in samples {
-            addOrUpdate(name: name, calories: calories)
+        for (name, calories, proteinGrams) in samples {
+            addOrUpdate(name: name, calories: calories, proteinGrams: proteinGrams)
         }
     }
 }

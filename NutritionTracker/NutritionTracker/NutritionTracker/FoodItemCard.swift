@@ -80,7 +80,7 @@ struct FoodItemCard: View {
                     .font(AppTheme.headlineFont)
                     .foregroundColor(AppTheme.textPrimary)
                 
-                Text("kcal")
+                Text("kcal • \(item.proteinGrams)g")
                     .font(AppTheme.smallFont)
                     .foregroundColor(AppTheme.textSecondary)
             }
@@ -128,7 +128,7 @@ struct FoodItemCard: View {
 }
 
 #Preview {
-    let item = FoodItem(name: "Apple", calories: 95)
+    let item = FoodItem(name: "Apple", calories: 95, proteinGrams: 0)
     return FoodItemCard(
         item: item,
         onToggle: { },
