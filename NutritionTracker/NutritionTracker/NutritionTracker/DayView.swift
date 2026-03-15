@@ -22,8 +22,7 @@ struct DayView: View {
     @State private var showingSettings = false
     @State private var showingCopyTodays = false
     @State private var selectedItemToCopy: FoodItem?
-    @State private var showingEditFood = false
-    @State private var selectedItemToEdit: FoodItem?
+    @State private var selectedItemToEdit: EditFoodSheetSelection?
     @State private var isEditing = false
     @State private var editedCalories = ""
 
@@ -111,133 +110,19 @@ struct DayView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Fixed Progress Section (stays at top)
-            VStack(spacing: AppTheme.paddingS) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Progress")
-                            .font(AppTheme.headlineFont)
-                            .foregroundColor(AppTheme.textPrimary)
-
-                        Text("Goal: \(dailyGoal) kcal")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppTheme.textSecondary)
-
-                        Text("Protein Target: \(dailyProteinGoal)g")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Remaining")
-                            .font(.system(size: 11))
-                            .foregroundColor(AppTheme.textSecondary)
-                        Text("\(remainingCalories) kcal")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(
-                                remainingCalories >= 0
-                                    ? AppTheme.primaryGreen : AppTheme.accentOrange)
-                    }
-                }
-
-                // Compact dual progress bars
-                VStack(spacing: 6) {
-                    Text("Calories")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack {
-                        Text("Eaten")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(AppTheme.primaryGreen)
-                            .frame(width: 55, alignment: .leading)
-
-                        ProgressView(
-                            value: min(Double(caloriesEaten), Double(dailyGoal)),
-                            total: Double(dailyGoal)
-                        )
-                        .tint(
-                            remainingCalories >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange
-                        )
-                        .scaleEffect(y: 0.8)
-
-                        Text("\(caloriesEaten)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 40, alignment: .trailing)
-                    }
-
-                    // Planned progress bar
-                    HStack {
-                        Text("Planned")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.blue)
-                            .frame(width: 55, alignment: .leading)
-
-                        ProgressView(
-                            value: min(Double(caloriesPlanned), Double(dailyGoal)),
-                            total: Double(dailyGoal)
-                        )
-                        .tint(remainingPlannedCalories >= 0 ? .blue : .orange)
-                        .scaleEffect(y: 0.8)
-
-                        Text("\(caloriesPlanned)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 40, alignment: .trailing)
-                    }
-
-                    Text("Protein")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, AppTheme.paddingXS)
-
-                    HStack {
-                        Text("Eaten")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(AppTheme.primaryGreen)
-                            .frame(width: 55, alignment: .leading)
-
-                        ProgressView(
-                            value: min(Double(proteinEaten), Double(dailyProteinGoal)),
-                            total: Double(dailyProteinGoal)
-                        )
-                        .tint(
-                            remainingProtein >= 0 ? AppTheme.primaryGreen : AppTheme.accentOrange
-                        )
-                        .scaleEffect(y: 0.8)
-
-                        Text("\(proteinEaten)g")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 48, alignment: .trailing)
-                    }
-
-                    HStack {
-                        Text("Planned")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.blue)
-                            .frame(width: 55, alignment: .leading)
-
-                        ProgressView(
-                            value: min(Double(proteinPlanned), Double(dailyProteinGoal)),
-                            total: Double(dailyProteinGoal)
-                        )
-                        .tint(remainingPlannedProtein >= 0 ? .blue : .orange)
-                        .scaleEffect(y: 0.8)
-
-                        Text("\(proteinPlanned)g")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary)
-                            .frame(width: 48, alignment: .trailing)
-                    }
-                }
-            }
-            .padding(AppTheme.paddingM)
-            .cardStyle(backgroundColor: AppTheme.adaptiveLightGreen(colorScheme))
+            NutritionProgressCard(
+                title: "Progress",
+                dailyGoal: dailyGoal,
+                dailyProteinGoal: dailyProteinGoal,
+                caloriesEaten: caloriesEaten,
+                caloriesPlanned: caloriesPlanned,
+                proteinEaten: proteinEaten,
+                proteinPlanned: proteinPlanned,
+                remainingCalories: remainingCalories,
+                remainingPlannedCalories: remainingPlannedCalories,
+                remainingProtein: remainingProtein,
+                remainingPlannedProtein: remainingPlannedProtein
+            )
             .padding(.horizontal, AppTheme.paddingM)
             .padding(.top, AppTheme.paddingM)
 
@@ -302,8 +187,7 @@ struct DayView: View {
                                         WidgetCenter.shared.reloadAllTimelines()
                                     },
                                     onEdit: {
-                                        selectedItemToEdit = item
-                                        showingEditFood = true
+                                        presentEditSheet(for: item)
                                     },
                                     onCopy: {
                                         showCopyToDaysSheet(for: item)
@@ -350,20 +234,10 @@ struct DayView: View {
                     }
             }
         }
-        .sheet(
-            isPresented: $showingEditFood,
-            onDismiss: {
-                selectedItemToEdit = nil
-            }
-        ) {
-            if let item = selectedItemToEdit {
-                EditFoodView(foodItem: item)
-            } else {
-                Text("Error loading food item")
-                    .onAppear {
-                        showingEditFood = false
-                    }
-            }
+        .sheet(item: $selectedItemToEdit, onDismiss: {
+            print("✏️ DayView dismissed edit sheet for date \(date)")
+        }) { selection in
+            EditFoodView(foodItem: selection.item)
         }
     }
 
@@ -396,6 +270,13 @@ struct DayView: View {
     private func showCopyToDaysSheet(for item: FoodItem) {
         selectedItemToCopy = item
         showingCopyTodays = true
+    }
+
+    private func presentEditSheet(for item: FoodItem) {
+        print(
+            "✏️ DayView presenting edit sheet for \(item.name) [id=\(item.id.uuidString)] on date \(date)"
+        )
+        selectedItemToEdit = EditFoodSheetSelection(item: item)
     }
 
     private func duplicateItem(_ item: FoodItem) {

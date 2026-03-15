@@ -20,8 +20,7 @@ struct WeeklyPlannerView: View {
     @State private var showingCopyConfirmation = false
     @State private var viewMode: ViewMode = .week
     @State private var currentMonth = Date()
-    @State private var showingEditFood = false
-    @State private var selectedItemToEdit: FoodItem?
+    @State private var selectedItemToEdit: EditFoodSheetSelection?
     @State private var showingCopyTodays = false
     @State private var selectedItemToCopy: FoodItem?
 
@@ -176,10 +175,10 @@ struct WeeklyPlannerView: View {
                 onCopy: copyDayToMultipleDates
             )
         }
-        .sheet(isPresented: $showingEditFood) {
-            if let item = selectedItemToEdit {
-                EditFoodView(foodItem: item)
-            }
+        .sheet(item: $selectedItemToEdit, onDismiss: {
+            print("✏️ WeeklyPlannerView dismissed edit sheet for selectedDate \(selectedDate)")
+        }) { selection in
+            EditFoodView(foodItem: selection.item)
         }
         .sheet(isPresented: $showingCopyTodays) {
             if let item = selectedItemToCopy {
@@ -545,8 +544,10 @@ struct WeeklyPlannerView: View {
     }
 
     private func editItem(_ item: FoodItem) {
-        selectedItemToEdit = item
-        showingEditFood = true
+        print(
+            "✏️ WeeklyPlannerView presenting edit sheet for \(item.name) [id=\(item.id.uuidString)] on selectedDate \(selectedDate)"
+        )
+        selectedItemToEdit = EditFoodSheetSelection(item: item)
     }
 
     private func copyItem(_ item: FoodItem) {

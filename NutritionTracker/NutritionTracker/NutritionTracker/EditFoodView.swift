@@ -9,6 +9,16 @@ import SwiftUI
 import SwiftData
 import WidgetKit
 
+struct EditFoodSheetSelection: Identifiable {
+    let id: UUID
+    let item: FoodItem
+
+    init(item: FoodItem) {
+        self.id = item.id
+        self.item = item
+    }
+}
+
 struct EditFoodView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -27,6 +37,9 @@ struct EditFoodView: View {
         self._name = State(initialValue: foodItem.name)
         self._calories = State(initialValue: String(foodItem.calories))
         self._proteinGrams = State(initialValue: String(foodItem.proteinGrams))
+        print(
+            "✏️ EditFoodView init for \(foodItem.name) [id=\(foodItem.id.uuidString)] kcal=\(foodItem.calories) protein=\(foodItem.proteinGrams)"
+        )
     }
     
     var body: some View {
@@ -105,25 +118,42 @@ struct EditFoodView: View {
         } message: {
             Text(alertMessage)
         }
+        .onAppear {
+            print(
+                "✏️ EditFoodView appeared for \(foodItem.name) [id=\(foodItem.id.uuidString)]"
+            )
+        }
+        .onDisappear {
+            print(
+                "✏️ EditFoodView disappeared for \(foodItem.name) [id=\(foodItem.id.uuidString)]"
+            )
+        }
     }
     
     private func saveChanges() {
+        print(
+            "✏️ Save requested for \(foodItem.name) [id=\(foodItem.id.uuidString)] newName=\(name) newCalories=\(calories) newProtein=\(proteinGrams)"
+        )
+
         // Validate input
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             alertMessage = "Please enter a food name"
             showAlert = true
+            print("❌ EditFoodView validation failed: empty name")
             return
         }
         
         guard let calorieValue = Int(calories), calorieValue > 0 else {
             alertMessage = "Please enter a valid number of calories"
             showAlert = true
+            print("❌ EditFoodView validation failed: invalid calories=\(calories)")
             return
         }
 
         guard let proteinValue = Int(proteinGrams), proteinValue >= 0 else {
             alertMessage = "Please enter a valid number of protein grams"
             showAlert = true
+            print("❌ EditFoodView validation failed: invalid protein=\(proteinGrams)")
             return
         }
         
@@ -134,12 +164,16 @@ struct EditFoodView: View {
         
         do {
             try modelContext.save()
+            print(
+                "✅ EditFoodView saved \(foodItem.name) [id=\(foodItem.id.uuidString)] kcal=\(foodItem.calories) protein=\(foodItem.proteinGrams)"
+            )
             
             // Refresh widget
             WidgetCenter.shared.reloadAllTimelines()
             
             dismiss()
         } catch {
+            print("❌ EditFoodView save failed: \(error)")
             alertMessage = "Failed to save changes: \(error.localizedDescription)"
             showAlert = true
         }
