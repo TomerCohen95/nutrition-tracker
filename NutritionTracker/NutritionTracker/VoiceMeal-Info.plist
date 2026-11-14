@@ -13,6 +13,8 @@
             </array>
         </dict>
     </array>
+    <key>MarkEatPersonalFoodSeed</key>
+    <string>$(MARKEAT_PERSONAL_FOOD_SEED)</string>
     <key>MarkEatVoiceEndpoint</key>
     <string>$(MARKEAT_VOICE_ENDPOINT)</string>
 </dict>

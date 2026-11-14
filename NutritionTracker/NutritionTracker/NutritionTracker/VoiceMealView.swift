@@ -12,6 +12,7 @@ struct VoiceMealView: View {
     @Environment(\.modelContext) private var context
     @AppStorage("voiceMealEndpoint") private var endpoint =
         Bundle.main.object(forInfoDictionaryKey: "MarkEatVoiceEndpoint") as? String ?? ""
+    @AppStorage(PersonalFood.storageKey) private var personalFoodData = Data()
     @StateObject private var recorder = VoiceMealRecorder()
     @State private var transcript = ""
     @State private var pendingAudio: Data?
@@ -33,6 +34,7 @@ struct VoiceMealView: View {
         let date: Date
         let source: String?
         let historySource: String?
+        let personalSource: String?
 
         init?(_ item: VoiceMealAnalysis.Item) {
             guard let date = VoiceMealService.date(item.date) else { return nil }
@@ -43,6 +45,7 @@ struct VoiceMealView: View {
             status = FoodItem.FoodStatus(rawValue: item.status)
             source = item.source
             historySource = item.historySource
+            personalSource = item.personalSource
         }
 
         private static func nutrientText(_ value: Double?, maximum: Double) -> String {
@@ -197,6 +200,11 @@ struct VoiceMealView: View {
                         Text("Eaten").tag(Optional(FoodItem.FoodStatus.eaten))
                         Text("Planned").tag(Optional(FoodItem.FoodStatus.planned))
                     }
+                    if let personalSource = row.personalSource {
+                        Text("מהמאכלים שלי · \(personalSource)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if let historySource = row.historySource {
                         Text("From your history · \(historySource)")
                             .font(.caption)
@@ -221,6 +229,11 @@ struct VoiceMealView: View {
                     Text(item.name).font(.headline)
                     Text("\(item.calories) kcal · \(item.proteinGrams) g protein · \(item.status.displayName)")
                     Text(item.date, style: .date)
+                    if let personalSource = row.personalSource {
+                        Text("מהמאכלים שלי · \(personalSource)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if let historySource = row.historySource {
                         Text("From your history · \(historySource)")
                             .font(.caption)
@@ -319,10 +332,11 @@ struct VoiceMealView: View {
         rows = []
         message = nil
         let history = recentFoods()
+        let personalFoods = PersonalFood.read(personalFoodData)
         operation = Task {
             defer { operation = nil }
             do {
-                let response = try await VoiceMealService(endpoint: endpoint).analyze(data, isRecording: isRecording, date: date, history: history)
+                let response = try await VoiceMealService(endpoint: endpoint).analyze(data, isRecording: isRecording, date: date, history: history, personalFoods: personalFoods)
                 try Task.checkCancellation()
                 transcript = response.transcript
                 pendingAudio = nil

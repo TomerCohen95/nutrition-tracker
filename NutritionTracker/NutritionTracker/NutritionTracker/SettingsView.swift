@@ -22,115 +22,125 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: AppTheme.paddingL) {
-                VStack(alignment: .leading, spacing: AppTheme.paddingM) {
-                    Text("Current Daily Goal")
-                        .font(AppTheme.headlineFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                    
-                    VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
-                        HStack {
-                            Text("\(currentGoal)")
-                                .font(AppTheme.titleFont)
-                                .fontWeight(.bold)
-                                .foregroundColor(AppTheme.primaryGreen)
-
-                            Text("calories")
-                                .font(AppTheme.bodyFont)
-                                .foregroundColor(AppTheme.textSecondary)
-                        }
-
-                        HStack {
-                            Text("\(currentProteinGoal)")
-                                .font(AppTheme.titleFont)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-
-                            Text("grams protein")
-                                .font(AppTheme.bodyFont)
-                                .foregroundColor(AppTheme.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.radiusM)
-                
-                VStack(alignment: .leading, spacing: AppTheme.paddingM) {
-                    Text("Set New Daily Goal")
-                        .font(AppTheme.headlineFont)
-                        .foregroundColor(AppTheme.textPrimary)
-                    
-                    TextField("Enter calories (e.g., 2500)", text: $newCalorieGoal)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.numberPad)
-
-                    TextField("Enter protein target (e.g., 200)", text: $newProteinGoal)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.numberPad)
-                    
-                    Text("Changes will apply from today forward")
-                        .font(AppTheme.captionFont)
-                        .foregroundColor(AppTheme.textSecondary)
-                    
-                    Button(action: updateCalorieGoal) {
-                        Text("Update Goal")
-                            .font(AppTheme.bodyFont)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
+            ScrollView {
+                VStack(spacing: AppTheme.paddingL) {
+                    NavigationLink {
+                        PersonalFoodSettings()
+                    } label: {
+                        Label("המאכלים שלי", systemImage: "fork.knife")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
-                            .background(AppTheme.primaryGreen)
-                            .cornerRadius(AppTheme.radiusM)
+                            .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: AppTheme.radiusM))
                     }
-                    .disabled(newCalorieGoal.isEmpty || newProteinGoal.isEmpty)
-                }
-                .padding()
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.radiusM)
-                
-                if !calorieGoals.isEmpty {
+
                     VStack(alignment: .leading, spacing: AppTheme.paddingM) {
-                        Text("Goal History")
+                        Text("Current Daily Goal")
                             .font(AppTheme.headlineFont)
                             .foregroundColor(AppTheme.textPrimary)
-                        
-                        ForEach(calorieGoals.prefix(5), id: \.effectiveDate) { goal in
+                    
+                        VStack(alignment: .leading, spacing: AppTheme.paddingXS) {
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(goal.goalCalories) calories • \(goal.goalProteinGrams)g protein")
-                                        .font(AppTheme.bodyFont)
-                                        .foregroundColor(AppTheme.textPrimary)
-                                    
-                                    Text("From \(goal.effectiveDate, formatter: dateFormatter)")
-                                        .font(AppTheme.captionFont)
-                                        .foregroundColor(AppTheme.textSecondary)
-                                }
-                                
-                                Spacer()
-                                
-                                if goal == calorieGoals.first {
-                                    Text("Current")
-                                        .font(AppTheme.captionFont)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(AppTheme.primaryGreen.opacity(0.2))
-                                        .foregroundColor(AppTheme.primaryGreen)
-                                        .cornerRadius(4)
-                                }
+                                Text("\(currentGoal)")
+                                    .font(AppTheme.titleFont)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(AppTheme.primaryGreen)
+
+                                Text("calories")
+                                    .font(AppTheme.bodyFont)
+                                    .foregroundColor(AppTheme.textSecondary)
                             }
-                            .padding(.vertical, 4)
+
+                            HStack {
+                                Text("\(currentProteinGoal)")
+                                    .font(AppTheme.titleFont)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+
+                                Text("grams protein")
+                                    .font(AppTheme.bodyFont)
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
                         }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(AppTheme.cardBackground)
+                    .cornerRadius(AppTheme.radiusM)
+                
+                    VStack(alignment: .leading, spacing: AppTheme.paddingM) {
+                        Text("Set New Daily Goal")
+                            .font(AppTheme.headlineFont)
+                            .foregroundColor(AppTheme.textPrimary)
+                    
+                        TextField("Enter calories (e.g., 2500)", text: $newCalorieGoal)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+
+                        TextField("Enter protein target (e.g., 200)", text: $newProteinGoal)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                    
+                        Text("Changes will apply from today forward")
+                            .font(AppTheme.captionFont)
+                            .foregroundColor(AppTheme.textSecondary)
+                    
+                        Button(action: updateCalorieGoal) {
+                            Text("Update Goal")
+                                .font(AppTheme.bodyFont)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(AppTheme.primaryGreen)
+                                .cornerRadius(AppTheme.radiusM)
+                        }
+                        .disabled(newCalorieGoal.isEmpty || newProteinGoal.isEmpty)
                     }
                     .padding()
                     .background(AppTheme.cardBackground)
                     .cornerRadius(AppTheme.radiusM)
-                }
                 
-                Spacer()
+                    if !calorieGoals.isEmpty {
+                        VStack(alignment: .leading, spacing: AppTheme.paddingM) {
+                            Text("Goal History")
+                                .font(AppTheme.headlineFont)
+                                .foregroundColor(AppTheme.textPrimary)
+                        
+                            ForEach(calorieGoals.prefix(5), id: \.effectiveDate) { goal in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("\(goal.goalCalories) calories • \(goal.goalProteinGrams)g protein")
+                                            .font(AppTheme.bodyFont)
+                                            .foregroundColor(AppTheme.textPrimary)
+                                    
+                                        Text("From \(goal.effectiveDate, formatter: dateFormatter)")
+                                            .font(AppTheme.captionFont)
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                
+                                    Spacer()
+                                
+                                    if goal == calorieGoals.first {
+                                        Text("Current")
+                                            .font(AppTheme.captionFont)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(AppTheme.primaryGreen.opacity(0.2))
+                                            .foregroundColor(AppTheme.primaryGreen)
+                                            .cornerRadius(4)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding()
+                        .background(AppTheme.cardBackground)
+                        .cornerRadius(AppTheme.radiusM)
+                    }
+                
+                }
+                .padding()
             }
-            .padding()
             .background(AppTheme.secondaryBackground)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)

@@ -13,6 +13,7 @@ struct VoiceMealAnalysis: Decodable {
         let date: String
         let source: String?
         let historySource: String?
+        let personalSource: String?
     }
 }
 
@@ -29,9 +30,10 @@ struct VoiceMealService {
         let content: Data
         let isRecording: Bool
         let history: [SavedFood]
+        let personalFoods: [PersonalFood]
     }
 
-    func analyze(_ content: Data, isRecording: Bool, date: Date, history: [SavedFood]) async throws -> VoiceMealAnalysis {
+    func analyze(_ content: Data, isRecording: Bool, date: Date, history: [SavedFood], personalFoods: [PersonalFood]) async throws -> VoiceMealAnalysis {
         guard let components = URLComponents(string: endpoint.trimmingCharacters(in: .whitespacesAndNewlines)),
               components.scheme == "https", components.host?.hasSuffix(".ts.net") == true,
               components.user == nil, components.password == nil, components.query == nil,
@@ -44,7 +46,7 @@ struct VoiceMealService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(Self.dayString(Date()), forHTTPHeaderField: "X-Meal-Today")
         request.setValue(Self.dayString(date), forHTTPHeaderField: "X-Meal-Date")
-        request.httpBody = try JSONEncoder().encode(Payload(content: content, isRecording: isRecording, history: history))
+        request.httpBody = try JSONEncoder().encode(Payload(content: content, isRecording: isRecording, history: history, personalFoods: personalFoods))
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let problem = try? JSONDecoder().decode(Problem.self, from: data)
