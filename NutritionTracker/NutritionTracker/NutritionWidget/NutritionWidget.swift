@@ -22,8 +22,10 @@ struct NutritionWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Nutrition Tracker")
-        .description("See your daily calorie progress and food items.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])
+        .description("See calories and protein against your daily goals. Tap the Lock Screen widget to record a meal.")
+        .supportedFamilies([
+            .systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular
+        ])
     }
 }
 
@@ -47,30 +49,16 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> Void) {
-        let entry = SimpleEntry(
-            date: Date(),
-            caloriesEaten: 1234,
-            caloriesPlanned: 1584,
-            proteinEaten: 132,
-            proteinPlanned: 176,
-            dailyGoal: 2000,
-            proteinGoal: 200,
-            foodItems: [
-                (UUID().uuidString, "Apple", FoodItem.FoodStatus.eaten, 95, 0),
-                (UUID().uuidString, "Sandwich", FoodItem.FoodStatus.planned, 350, 28),
-                (UUID().uuidString, "Salad", FoodItem.FoodStatus.eaten, 150, 6),
-            ],
-            allItems: []
-        )
-        completion(entry)
+        completion(context.isPreview ? placeholder(in: context) : fetchCurrentData(for: Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         let currentDate = Date()
         let entry = fetchCurrentData(for: currentDate)
 
-        // Update every 15 minutes
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+        let calendar = Calendar.current
+        let tomorrow = calendar.dateInterval(of: .day, for: currentDate)?.end ?? currentDate.addingTimeInterval(15 * 60)
+        let nextUpdate = min(currentDate.addingTimeInterval(15 * 60), tomorrow)
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
 
         completion(timeline)
@@ -212,10 +200,52 @@ struct NutritionWidgetEntryView: View {
             LargeWidgetView(entry: entry)
         case .systemExtraLarge:
             ExtraLargeWidgetView(entry: entry)
+        case .accessoryRectangular:
+            LockScreenNutritionView(entry: entry)
+                .widgetURL(VoiceWidgetMicrophone.url)
         default:
             SmallWidgetView(entry: entry)
                 .widgetURL(VoiceWidgetMicrophone.url)
         }
+    }
+}
+
+private struct LockScreenNutritionView: View {
+    let entry: SimpleEntry
+
+    var body: some View {
+        HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                metric(eaten: entry.caloriesEaten, goal: entry.dailyGoal, unit: "kcal",
+                       symbol: "flame.fill", label: "Calories")
+                metric(eaten: entry.proteinEaten, goal: entry.proteinGoal, unit: "g protein",
+                       symbol: "fork.knife", label: "Protein")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "mic.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 25, height: 28)
+                .background(.primary.opacity(0.14), in: Circle())
+                .accessibilityHidden(true)
+        }
+        .frame(maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens the app and starts recording a meal.")
+    }
+
+    private func metric(eaten: Int, goal: Int, unit: String, symbol: String, label: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: symbol)
+                .frame(width: 12)
+                .accessibilityHidden(true)
+            Text("\(eaten)/\(goal) \(unit)")
+                .monospacedDigit()
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .accessibilityLabel("\(label): \(eaten) of \(goal)")
     }
 }
 
