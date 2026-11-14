@@ -12,6 +12,8 @@ def extracted_food(name, search, **overrides):
         "grams": 200,
         "recipe_details": [],
         "nutrition_quote": None,
+        "base_calories": None,
+        "base_protein": None,
         "portion_assumed": True,
         "calories": None,
         "protein": None,
@@ -41,8 +43,10 @@ class MealNutritionTest(unittest.TestCase):
             self.assertEqual(prompt, server.RESOLVE_NUTRITION)
             self.assertEqual(data[0]["candidates"], [])
             self.assertEqual(data[0]["known_protein"], 0)
-            return {"items": [{"item": 0, "candidate": None, "calories": 150,
-                               "protein": 5, "assumption": "קערה בינונית"}]}
+            return {"items": [{"item": 0, "candidate": None, "parts": [
+                {"portion": "קערת מרק", "calories": 120, "protein": 4},
+                {"portion": "כף יוגורט", "calories": 30, "protein": 1},
+            ]}]}
 
         with patch.object(server, "structured", side_effect=respond), patch.object(
             server, "lookup", return_value={1: ("Vegetable soup, canned", 60, 3)}
@@ -56,7 +60,7 @@ class MealNutritionTest(unittest.TestCase):
         item = result["items"][0]
         self.assertEqual(item["calories"], 150)
         self.assertEqual(item["protein"], 0)
-        self.assertEqual(item["estimateSource"], "קערה בינונית")
+        self.assertEqual(item["estimateSource"], "קערת מרק (120 kcal) + כף יוגורט (30 kcal)")
         self.assertIsNone(item["personalSource"])
         self.assertIsNone(item["source"])
 
@@ -74,3 +78,23 @@ class MealNutritionTest(unittest.TestCase):
         self.assertEqual((item["calories"], item["protein"]), (100, 4))
         self.assertEqual(item["personalSource"], "פיתה")
         self.assertIsNone(item["estimateSource"])
+
+    def test_additions_are_summed_on_top_of_stated_base(self):
+        transcript = "קערת אורז היא 400 קלוריות לפני התוספות, הוספתי טחינה"
+        food = extracted_food(
+            "קערת אורז עם טחינה", "rice bowl with tahini",
+            base_calories=400, nutrition_quote="400 קלוריות", recipe_details=["tahini"],
+        )
+        responses = [
+            {"items": [food], "clarification": None},
+            {"items": [{"item": 0, "candidate": None, "parts": [
+                {"portion": "קערת אורז", "calories": 200, "protein": 7},
+                {"portion": "כף טחינה", "calories": 90, "protein": 3},
+            ]}]},
+        ]
+        with patch.object(server, "structured", side_effect=responses), patch.object(server, "lookup") as lookup:
+            result = server.parse_meal(transcript, "2026-11-14", "2026-11-14")
+        lookup.assert_not_called()
+        item = result["items"][0]
+        self.assertEqual((item["calories"], item["protein"]), (490, 10))
+        self.assertEqual(item["estimateSource"], "קערת אורז (400 kcal) + כף טחינה (90 kcal)")
