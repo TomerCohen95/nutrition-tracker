@@ -259,6 +259,33 @@ def history_match(food, history):
     return choices[0]
 
 
+def fill_nutrition(food, values):
+    for key, value, maximum in zip(("calories", "protein"), values, (30_000, 3_000)):
+        if food[key] is None and value is not None:
+            food[key] = number(value * food["grams"] / 100, maximum)
+
+
+def portion_source(food, label):
+    suffix = " (estimated portion)" if food["portion_assumed"] else ""
+    return f'{label} • {food["grams"]:g} g{suffix}'
+
+
+def yellow_cheese_proxy(food):
+    # Use the standard proxy only for the unbranded product name.
+    if food["branded"] or not re.fullmatch(r"גבינה צהובה(?: +28 *(?:%|אחוז))?", food["name"].strip()):
+        return None
+    for _, (label, calories, protein), _ in CONFIG.catalog:
+        if label.casefold() == "cheese, gouda" and calories is not None and protein is not None:
+            if food["grams"] is None or food["portion_assumed"]:
+                food["grams"] = 20
+                food["portion_assumed"] = True
+            if not food["grams"]:
+                return None
+            fill_nutrition(food, (calories, protein))
+            return portion_source(food, "Gouda (generic yellow-cheese estimate)")
+    return None
+
+
 def parse_meal(transcript, today, selected_date, history=()):
     if not transcript or len(transcript) > 4000:
         raise ServiceError(422, "Enter a food description of up to 4,000 characters.")
@@ -290,8 +317,12 @@ def parse_meal(transcript, today, selected_date, history=()):
                     if food[key] is None and saved[key] is not None:
                         food[key] = saved[key]
                         reused[i] = saved["name"]
-        if food["search"].strip() and food["grams"] and (food["calories"] is None or food["protein"] is None):
-            pending[i] = food
+        if food["calories"] is None or food["protein"] is None:
+            source = yellow_cheese_proxy(food)
+            if source:
+                sources[i] = source
+            elif food["search"].strip() and food["grams"]:
+                pending[i] = food
 
     if pending:
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
@@ -325,11 +356,8 @@ def parse_meal(transcript, today, selected_date, history=()):
                     continue
                 label, calories, protein = candidates[index][match["candidate"]]
                 food = foods[index]
-                for key, value in (("calories", calories), ("protein", protein)):
-                    if food[key] is None and value is not None:
-                        maximum = 30_000 if key == "calories" else 3_000
-                        food[key] = number(value * food["grams"] / 100, maximum)
-                sources[index] = f'{label} • {food["grams"]:g} g' + (" (estimated portion)" if food["portion_assumed"] else "")
+                fill_nutrition(food, (calories, protein))
+                sources[index] = portion_source(food, label)
 
     return {"transcript": transcript, "clarification": None, "items": [
         {
