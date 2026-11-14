@@ -84,7 +84,8 @@ sounds typical. Never return a dish and also its included components. Never add 
 customary side, ingredient, brand, fat percentage, or other detail the speaker did not mention.
 Ignore negation, discarded options, examples, foods eaten by someone else and non-food
 conversation. Keep repeated quantities of the same food together on the same day and status.
-Use the language of the transcript and correct obvious spelling or homophones in context.
+Use the language of the transcript. Correct a likely transcription error when a phonetically
+similar food term uniquely fits the context, including after an attached Hebrew conjunction.
 Preserve stated amounts and product attributes. Leave ambiguous food identities as spoken.
 
 Examples of entry boundaries, with no implied nutrition:
@@ -153,7 +154,8 @@ If no candidate fits, estimate the missing calories (kcal) and protein (grams) f
 whole stated portion. Use the portion and ingredient quantities in the item if given.
 Otherwise use a plausible everyday portion for the described food. For composite dishes
 estimate internally by adding the stated components, counting each once; include ordinary
-parts inherent in the named dish and typical amounts of the stated additions. Do not assume
+parts inherent in the named dish and typical amounts of the stated additions. Assume the
+standard complete serving unless the user excluded a part or named just a component. Do not assume
 unmentioned optional toppings, cooking fats, drinks, or sides. Respect specific ingredient
 counts over typical serving weights. Use sensible rounded amounts and zero where appropriate.
 Never replace a known nutrient; return null for that field. With an appropriate candidate,
