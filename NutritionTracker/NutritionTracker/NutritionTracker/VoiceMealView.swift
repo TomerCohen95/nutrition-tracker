@@ -35,6 +35,7 @@ struct VoiceMealView: View {
         let source: String?
         let historySource: String?
         let personalSource: String?
+        let estimateSource: String?
 
         init?(_ item: VoiceMealAnalysis.Item) {
             guard let date = VoiceMealService.date(item.date) else { return nil }
@@ -46,6 +47,7 @@ struct VoiceMealView: View {
             source = item.source
             historySource = item.historySource
             personalSource = item.personalSource
+            estimateSource = item.estimateSource
         }
 
         private static func nutrientText(_ value: Double?, maximum: Double) -> String {
@@ -200,21 +202,7 @@ struct VoiceMealView: View {
                         Text("Eaten").tag(Optional(FoodItem.FoodStatus.eaten))
                         Text("Planned").tag(Optional(FoodItem.FoodStatus.planned))
                     }
-                    if let personalSource = row.personalSource {
-                        Text("מהמאכלים שלי · \(personalSource)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let historySource = row.historySource {
-                        Text("From your history · \(historySource)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let source = row.source {
-                        Text("USDA estimate · \(source)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    nutritionSources(row)
                 }
             }
             Button("Add to diary", action: save)
@@ -229,24 +217,31 @@ struct VoiceMealView: View {
                     Text(item.name).font(.headline)
                     Text("\(item.calories) kcal · \(item.proteinGrams) g protein · \(item.status.displayName)")
                     Text(item.date, style: .date)
-                    if let personalSource = row.personalSource {
-                        Text("מהמאכלים שלי · \(personalSource)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let historySource = row.historySource {
-                        Text("From your history · \(historySource)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let source = row.source {
-                        Text("USDA estimate · \(source)")
-                            .font(.caption)
-                    }
+                    nutritionSources(row)
                 }
             }
             Button("Undo", role: .destructive, action: undo)
         }
+    }
+
+    @ViewBuilder
+    private func nutritionSources(_ row: Draft) -> some View {
+        Group {
+            if let personalSource = row.personalSource {
+                Text("מהמאכלים שלי · \(personalSource)")
+            }
+            if let historySource = row.historySource {
+                Text("From your history · \(historySource)")
+            }
+            if let source = row.source {
+                Text("USDA estimate · \(source)")
+            }
+            if let estimate = row.estimateSource {
+                Text(estimate.isEmpty ? "אומדן תזונתי" : "אומדן תזונתי · \(estimate)")
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     private func autoStartIfReady() {

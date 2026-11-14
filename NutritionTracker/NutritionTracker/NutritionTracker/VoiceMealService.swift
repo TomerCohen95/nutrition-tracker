@@ -14,6 +14,7 @@ struct VoiceMealAnalysis: Decodable {
         let source: String?
         let historySource: String?
         let personalSource: String?
+        let estimateSource: String?
     }
 }
 
