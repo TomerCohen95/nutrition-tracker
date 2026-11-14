@@ -75,7 +75,16 @@ Use the language of the input for name and preserve stated amounts and product a
 Split separately mentioned foods joined by a conjunction, including attached Hebrew ו, into
 separate entries, even if eaten together. For example, "פיתה וגבינה צהובה 28%" means two
 entries: "פיתה" and "גבינה צהובה 28%". Keep a named composite dish as one entry when its
-ingredients were not listed as separate foods (e.g. "פיצה מרגריטה").
+ingredients describe how that dish was made. A bare ingredient count right after a dish is
+the recipe for the dish, even if the speaker omits "with" or "made of".
+"חביתה 3 ביצים" and "חביתה משלוש ביצים" each mean one item named "חביתה מ־3 ביצים",
+with search "whole egg omelet". Keep the egg count in the dish name and do not log the
+eggs again. Apply the same rule to ingredients in other dishes, like "סלט משתי עגבניות".
+For an omelet, include any stated filling in the English search (e.g. "egg omelet with onions").
+When the eggs are counted, estimate about 50 g per large egg plus any stated fillings for
+the lookup weight, and mark it estimated even if the filling quantity was unspecified.
+If the speaker indicates a separate food, e.g. "חביתה ועוד 3 ביצים בצד", return two items.
+Do not attach a food mentioned with a separate time, date or eaten/planned status to a dish.
 A percentage in a cheese name is usually milk-fat content, not a serving amount or a brand.
 Preserve it in the diary name, but search with a generic English cheese type and use a
 typical single slice when no portion is given. Do not infer that a generic yellow cheese
@@ -123,7 +132,9 @@ Return up to 20 distinct items; ask the user to split longer lists instead of si
 
 SELECT = """For each item pick the ID of the closest USDA candidate, or null if there is no
 reasonable match. Use only supplied candidates. Match the actual food, cooking state and form;
-raw and cooked foods differ. For explicit brands require the same product/brand; never substitute
+raw and cooked foods differ. An omelet must match an omelet. Scrapple is a pork dish and
+is never a match for eggs or omelets. Return null if no candidate has the right food identity.
+For explicit brands require the same product/brand; never substitute
 a different brand. For an unbranded food, use its search description to select a representative
 equivalent even if the original wording specifies a fat percentage absent from the database.
 For generic sliced yellow cheese, prefer plain Gouda or Edam over processed or low-fat
@@ -180,6 +191,14 @@ def food_words(text):
     return [normalize(word) for word in re.findall(r"[a-z]+", text.lower())]
 
 
+def is_omelet(text):
+    return bool(re.search(r"\b(?:חביתה|חביתת|omelets?|omelettes?)\b", text, re.IGNORECASE))
+
+
+def is_omelet_candidate(label):
+    return is_omelet(label) and "ingredient" not in label.casefold()
+
+
 def lookup(food):
     if not food["branded"] and CONFIG.catalog:
         query = food_words(food["search"])
@@ -187,7 +206,10 @@ def lookup(food):
             # Rank token coverage even if the search begins with a quantity or adjective.
             query_tokens = set(query)
             ranked = []
+            omelet = is_omelet(food["name"]) or is_omelet(food["search"])
             for ident, details, words in CONFIG.catalog:
+                if omelet and not is_omelet_candidate(details[0]):
+                    continue
                 shared = query_tokens.intersection(words)
                 if shared:
                     score = (len(shared), words[0] in shared, -len(words))
@@ -368,15 +390,65 @@ def fill_personal_nutrition(food, entry, transcript):
     return filled
 
 
+EGG_COUNTS = {
+    "שתי": 2, "שני": 2, "שתיים": 2, "שלוש": 3, "שלושה": 3, "ארבע": 4, "ארבעה": 4,
+    "חמש": 5, "חמישה": 5, "שש": 6, "שישה": 6, "שבע": 7, "שמונה": 8, "תשע": 9, "עשר": 10,
+}
+EGG_PORTION = rf"(?P<count>[0-9]{{1,2}}|{'|'.join(EGG_COUNTS)})\s+ביצים"
+PLAIN_OMELET = re.compile(rf"חביתה\s*,?\s*(?:מ[־–-]?\s*)?{EGG_PORTION}")
+
+
+def plain_omelet_nutrition(food):
+    match = PLAIN_OMELET.fullmatch(food["name"].strip())
+    if food["branded"] or (match is None and food["name"].strip() != "חביתה"):
+        return None
+    if match is None:
+        # Fall back to the USDA cooked omelet entry for an unqualified omelet.
+        record_id = 172185
+        label = "Egg, whole, cooked, omelet"
+        if not food["grams"]:
+            food["grams"] = 100
+            food["portion_assumed"] = True
+    else:
+        count = match["count"]
+        eggs = int(count) if count.isdecimal() else EGG_COUNTS[count]
+        if not 1 <= eggs <= 20:
+            return None
+        # A large egg contributes about 50 g of edible egg before cooking.
+        record_id = 171287
+        label = "Whole eggs, large (egg ingredients only)"
+        food["grams"] = 50 * eggs
+        food["portion_assumed"] = True
+    for ident, (_, calories, protein), _ in CONFIG.catalog:
+        if ident == record_id and calories is not None and protein is not None:
+            fill_nutrition(food, (calories, protein))
+            return portion_source(food, label)
+    return None
+
+
 def parse_meal(transcript, today, selected_date, history=(), personal_foods=()):
     if not transcript or len(transcript) > 4000:
         raise ServiceError(422, "Enter a food description of up to 4,000 characters.")
+    # Expand the common short dictation before extraction to make the ingredient relation explicit.
+    shorthand = PLAIN_OMELET.fullmatch(transcript.strip().rstrip(".!?"))
+    description = transcript
+    if shorthand:
+        count = shorthand["count"]
+        eggs = int(count) if count.isdecimal() else EGG_COUNTS[count]
+        description = "חביתה מביצה אחת" if eggs == 1 else f"חביתה מ־{eggs} ביצים"
     result = structured(PARSE, {
-        "transcript": transcript, "today": today, "selected_date": selected_date,
+        "transcript": description, "today": today, "selected_date": selected_date,
         "saved_foods": [{"id": i, "name": entry["name"]} for i, entry in enumerate(history)],
         "personal_foods": [{"id": i, "name": entry["name"]} for i, entry in enumerate(personal_foods)],
     }, EXTRACTION)
     foods = result["items"]
+    if shorthand and not result["clarification"]:
+        dish = next((item for item in foods if is_omelet(item["name"])), None)
+        if dish is not None:
+            # The entire transcript names one dish. Discard any separately extracted eggs.
+            dish["name"] = f"חביתה מ־{eggs} ביצים"
+            dish["search"] = "whole egg omelet"
+            foods = [dish]
     if result["clarification"]:
         return {"transcript": transcript, "items": [], "clarification": result["clarification"]}
     if not foods or len(foods) > 20:
@@ -405,7 +477,7 @@ def parse_meal(transcript, today, selected_date, history=(), personal_foods=()):
                         food[key] = saved[key]
                         reused[i] = saved["name"]
         if food["calories"] is None or food["protein"] is None:
-            source = yellow_cheese_proxy(food)
+            source = plain_omelet_nutrition(food) or yellow_cheese_proxy(food)
             if source:
                 sources[i] = source
             elif food["search"].strip() and food["grams"]:
@@ -425,8 +497,9 @@ def parse_meal(transcript, today, selected_date, history=(), personal_foods=()):
         options = [
             {"item": i, "food": foods[i]["name"], "search": foods[i]["search"], "candidates": [
                 {"id": ident, "label": details[0]} for ident, details in matches.items()
-                if all(foods[i][key] is not None or value is not None
-                       for key, value in zip(("calories", "protein"), details[1:]))
+                if (not (is_omelet(foods[i]["name"]) or is_omelet(foods[i]["search"])) or is_omelet_candidate(details[0]))
+                and all(foods[i][key] is not None or value is not None
+                        for key, value in zip(("calories", "protein"), details[1:]))
             ]}
             for i, matches in candidates.items() if matches
         ]
