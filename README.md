@@ -5,7 +5,8 @@ A minimalist nutrition tracking app built with **SwiftUI** and **WidgetKit**, fe
 ## ✨ Features
 
 ### 📱 Main App
-- **Manual Food Entry** - Add food items with name and calorie count
+- **Manual Food Entry** - Add food items with calories and protein
+- **Voice Meal Logging** - Describe several foods in Hebrew. The app separates the foods, infers whether each was eaten or planned, and reuses saved nutrition values before looking up missing values. See [voice server setup](voice-server/README.md).
 - **Daily Tracking** - View today's meals with planned/eaten status
 - **Calorie Progress** - Visual progress bar showing calories consumed vs. daily goal (2000 kcal)
 - **Simple Toggle** - Mark items as eaten by tapping the circle icon
@@ -15,12 +16,11 @@ A minimalist nutrition tracking app built with **SwiftUI** and **WidgetKit**, fe
 - **Small Widget** - Shows calorie progress and remaining/over amount
 - **Medium Widget** - Displays progress plus list of today's food items
 - **Live Updates** - Widget refreshes automatically when app data changes
-- **Tap to Open** - Tap widget to launch the main app
+- **Record from the Widget** - Tap the microphone to open the recorder. Recording stops automatically after a pause, or when you tap the large microphone.
 
 ### 🔒 Privacy & Storage
-- **100% Local** - No internet connection required
-- **No Accounts** - No login or user accounts needed
-- **Device Only** - All data stays on your device
+- **Local Diary** - Manual logging works offline, and the diary is stored on your device.
+- **Voice Processing** - Voice logging uses your Mac service over Tailscale. The service sends audio or text to OpenAI for transcription and meal extraction.
 - **App Groups** - Secure data sharing between app and widget
 
 ## 🛠️ Technical Stack

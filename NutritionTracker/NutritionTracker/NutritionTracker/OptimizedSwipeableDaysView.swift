@@ -12,6 +12,7 @@ struct OptimizedSwipeableDaysView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var showingSettings = false
+    private let openVoiceMeal: (Date) -> Void
     
     // Performance optimization: Only keep 3 views in memory
     @State private var visibleViewIndices: Set<Int> = []
@@ -41,7 +42,8 @@ struct OptimizedSwipeableDaysView: View {
         }
     }
     
-    init() {
+    init(openVoiceMeal: @escaping (Date) -> Void = { _ in }) {
+        self.openVoiceMeal = openVoiceMeal
         self.dateRange = DateRange()
         _currentDateIndex = State(initialValue: dateRange.todayIndex)
     }
@@ -100,6 +102,13 @@ struct OptimizedSwipeableDaysView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
+                    Button {
+                        openVoiceMeal(dateRange.dates[currentDateIndex])
+                    } label: {
+                        Image(systemName: "mic")
+                    }
+                    .accessibilityLabel("Log a meal by voice")
+
                     // Settings button (only show when on today)
                     if currentDateIndex == dateRange.todayIndex {
                         Button {

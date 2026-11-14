@@ -205,6 +205,7 @@ struct NutritionWidgetEntryView: View {
         switch family {
         case .systemSmall:
             SmallWidgetView(entry: entry)
+                .widgetURL(VoiceWidgetMicrophone.url)
         case .systemMedium:
             MediumWidgetView(entry: entry)
         case .systemLarge:
@@ -213,7 +214,32 @@ struct NutritionWidgetEntryView: View {
             ExtraLargeWidgetView(entry: entry)
         default:
             SmallWidgetView(entry: entry)
+                .widgetURL(VoiceWidgetMicrophone.url)
         }
+    }
+}
+
+private struct VoiceWidgetMicrophone: View {
+    static let url = URL(string: "markeat-journal://record-meal")!
+    var isLink = true
+
+    var body: some View {
+        if isLink {
+            Link(destination: Self.url) {
+                icon
+            }
+            .accessibilityLabel("Record a meal")
+        } else {
+            icon.accessibilityHidden(true)
+        }
+    }
+
+    private var icon: some View {
+        Image(systemName: "mic.fill")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.green)
+            .frame(width: 30, height: 30)
+            .background(.green.opacity(0.14), in: Circle())
     }
 }
 
@@ -237,7 +263,8 @@ struct SmallWidgetView: View {
                 Text("Nutrition")
                     .font(.caption)
                     .fontWeight(.medium)
-                Spacer()
+                Spacer(minLength: 0)
+                VoiceWidgetMicrophone(isLink: false)
             }
 
             Spacer()
@@ -313,7 +340,9 @@ struct MediumWidgetView: View {
                     .font(.system(size: 12))
                 Text("Today's Nutrition")
                     .font(.system(size: 14, weight: .medium))
-                Spacer()
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                VoiceWidgetMicrophone()
 
                 VStack(alignment: .trailing, spacing: 1) {
                     // Eaten progress
@@ -516,6 +545,8 @@ struct LargeWidgetHeaderView: View {
             }
 
             Spacer()
+
+            VoiceWidgetMicrophone()
 
             VStack(alignment: .trailing, spacing: 6) {
                 // Eaten stats
@@ -740,6 +771,8 @@ struct ExtraLargeWidgetView: View {
                 }
 
                 Spacer()
+
+                VoiceWidgetMicrophone()
 
                 VStack(alignment: .trailing, spacing: 12) {
                     // Eaten stats
