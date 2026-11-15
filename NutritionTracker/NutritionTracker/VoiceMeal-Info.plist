@@ -17,5 +17,7 @@
     <string>$(MARKEAT_PERSONAL_FOOD_SEED)</string>
     <key>MarkEatVoiceEndpoint</key>
     <string>$(MARKEAT_VOICE_ENDPOINT)</string>
+    <key>MarkEatPreviousVoiceEndpoint</key>
+    <string>$(MARKEAT_PREVIOUS_VOICE_ENDPOINT)</string>
 </dict>
 </plist>

@@ -111,7 +111,10 @@ struct VoiceMealView: View {
                     .toolbar { Button("Done") { showServer = false } }
                 }
             }
-            .task { autoStartIfReady() }
+            .task {
+                migrateVoiceEndpoint()
+                autoStartIfReady()
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { autoStartIfReady() }
                 if phase == .background && recorder.isRecording {
@@ -242,6 +245,16 @@ struct VoiceMealView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+    }
+
+    private func migrateVoiceEndpoint() {
+        guard let previous = Bundle.main.object(forInfoDictionaryKey: "MarkEatPreviousVoiceEndpoint") as? String,
+              let current = Bundle.main.object(forInfoDictionaryKey: "MarkEatVoiceEndpoint") as? String,
+              !previous.isEmpty, !current.isEmpty else { return }
+        let saved = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        if saved == previous || saved == previous + "/" {
+            endpoint = current
+        }
     }
 
     private func autoStartIfReady() {
